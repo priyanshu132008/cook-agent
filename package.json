@@ -1,0 +1,21 @@
+{
+  "name": "cook-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The local-first AI co-founder for indie hackers",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "start": "pnpm --filter cli start"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "chromadb": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0",
+    "turbo": "^2.0.0"
+  },
+  "packageManager": "pnpm@10.0.0"
+}

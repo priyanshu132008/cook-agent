@@ -11,12 +11,7 @@ Remembers your journey. Guides your next move. Helps you ship..</strong></p>
 </div>
 
 ---
-
-
-
-
-
-What is Cook?
+⚡ What is Cook?
 
 Cook is an open-source AI co-founder.
 
@@ -24,138 +19,118 @@ It remembers what you're building, keeps you accountable, validates your ideas, 
 
 Unlike a normal chatbot, Cook grows with you.
 
-Everything runs locally.
+Why builders love it:
 
-No subscriptions.
+- 🖥️ Runs locally
+- 🧠 Persistent memory
+- 🔒 Your data stays on your machine
+- 🚫 No subscriptions
+- 🚫 No cloud memory
+- 🚫 No vendor lock-in
 
-No cloud memory.
+---
 
-No vendor lock-in.
-
-Your ideas stay yours.
-
-Why Cook?
-
-Instead of opening ChatGPT every day and explaining your project again...
-
-Cook already knows:
-
-What you're building
-
-Where you're stuck
-
-Your skill level
-
-Your previous progress
-
-What you should do next
-
-It grows with you.
-
-Install
+🚀 Install
 
 Requirements
 
-Node.js 22+
+- Node.js 22+
 
-Install Cook
+Install
 
 curl -sL https://lethimcook.online/install.sh | bash
 
-Start Cook
+Start
 
 cook onboard
 cook chat
 
-What Cook Can Do
+---
 
-Remember Everything
+🍳 What Cook Can Do
+
+🧠 Remember Everything
 
 Cook remembers:
 
-Ideas
+- Ideas
+- Projects
+- Progress
+- Research
+- Decisions
+- Daily standups
 
-Projects
+Everything is stored locally inside "/memory/" as Markdown.
 
-Progress
+---
 
-Research
-
-Decisions
-
-Daily standups
-
-Everything is stored locally as Markdown inside /memory/.
-
-Give You Direction
+🎯 Give You Direction
 
 Every day Cook asks:
 
-What did you ship yesterday?
+«What did you ship yesterday?»
 
-Then it gives you exactly 3 priorities for today.
+Then gives you exactly 3 priorities for today.
 
 Not twenty.
 
 Three.
 
-Validate Ideas
+---
 
-Research competitors
+🚀 Validate Ideas
 
-Find market gaps
+- Research competitors
+- Find market gaps
+- Challenge weak ideas
+- Tell you the hard truth
 
-Challenge weak ideas
+---
 
-Tell you the hard truth
-
-Research the Web
+🌐 Research the Web
 
 Research documentation, competitors and technical topics.
 
 Optimized for local AI models.
 
-Find Customers
+---
+
+👥 Find Customers
 
 Discover:
 
-Reddit communities
-
-IndieHackers
-
-LinkedIn prospects
-
-Forums
-
-Early adopters
+- Reddit communities
+- IndieHackers
+- LinkedIn prospects
+- Forums
+- Early adopters
 
 Generate personalized outreach based on where your customers actually hang out.
 
-Launch Your Product
+---
+
+📢 Launch Your Product
 
 Generate:
 
-Product Hunt launch
+- Product Hunt launch
+- Reddit posts
+- X threads
+- LinkedIn posts
+- Launch checklist
 
-Reddit posts
+---
 
-X threads
+💻 Runs on Your Laptop
 
-LinkedIn posts
+- Local-first
+- Hardware aware
+- Free AI models
+- Privacy by default
 
-Launch checklist
+---
 
-Runs on Your Laptop
-
-Local-first
-
-Hardware aware
-
-Free AI models
-
-Privacy by default
-
-Core Commands
+⚙️ Core Commands
 
 cook blueprint    # Build roadmap
 cook validate     # Validate your startup idea
@@ -168,71 +143,53 @@ cook standup      # Today's 3 priorities
 cook decide       # Decision partner
 cook doctor       # System diagnostics
 
-Who Is It For?
+---
 
-Cook is built for people who are building something.
+🎯 Who Is It For?
 
-Especially if you:
+Cook is built for builders.
 
-Are a student founder
+Perfect if you:
 
-Are building your first startup
+- 🎓 Are a student founder
+- 🚀 Are building your first startup
+- 🤖 Run an AI agency
+- 💻 Build SaaS
+- 🛠️ Are an indie hacker
+- 💸 Can't afford expensive AI subscriptions
+- 🍳 Want an AI co-founder instead of another chatbot
 
-Run an AI agency
+---
 
-Build SaaS
-
-Are an indie hacker
-
-Can't afford expensive AI subscriptions
-
-Want an AI co-founder instead of another chatbot
-
-Philosophy
+📖 Philosophy
 
 Cook isn't another AI assistant.
 
 It exists for one reason:
 
-Help builders ship.
+«Help builders ship.»
 
-Progress over motivation.
+- Progress over motivation.
+- Execution over perfection.
+- Direction over information.
 
-Execution over perfection.
+---
 
-Direction over information.
+🗺️ Roadmap
 
-Roadmap
+- [x] Local-first architecture
+- [x] Persistent memory
+- [x] Founder onboarding
+- [x] Core skill system
+- [ ] Telegram accountability
+- [ ] WhatsApp support
+- [ ] Daily standups
+- [ ] Customer finder
+- [ ] Launch assistant
 
-Local-first architecture
+---
 
-Persistent memory
 
-Founder onboarding
-
-Core skill system
-
-Telegram accountability
-
-WhatsApp support
-
-Daily standups
-
-Customer finder
-
-Launch assistant
-
-Contributing
-
-Cook is open source.
-
-If you believe builders deserve a free AI co-founder, contributions are welcome.
-
-Fork it.
-
-Improve it.
-
-Ship it.
 
 <div align="center">
 

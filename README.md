@@ -11,6 +11,12 @@ Remembers your journey. Guides your next move. Helps you ship..</strong></p>
 </div>
 
 ---
+<p align="center">
+  🌐 <a href="https://lethimcook.online"><strong>Website</strong></a>
+  &nbsp;•&nbsp;
+  📖 <a href="https://lethimcook.online/docs"><strong>Documentation</strong></a>
+</p>
+
 ⚡ What is Cook?
 
 Cook is an open-source AI co-founder.

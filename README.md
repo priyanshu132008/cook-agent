@@ -175,18 +175,17 @@ It exists for one reason:
 
 ---
 
-🗺️ Roadmap
+🗺️ 🗺️ Roadmap
 
 - [x] Local-first architecture
 - [x] Persistent memory
 - [x] Founder onboarding
 - [x] Core skill system
-- [ ] Telegram accountability
-- [ ] WhatsApp support
-- [ ] Daily standups
-- [ ] Customer finder
-- [ ] Launch assistant
-
+- [x] Telegram accountability
+- [x] Terminal TUI
+- [x] Daily standups
+- [x] Customer finder
+- [x] Launch assistant
 ---
 
 

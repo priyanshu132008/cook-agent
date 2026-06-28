@@ -36,20 +36,24 @@ Why builders love it:
 
 ---
 
-🚀 Install
+## 🚀 Install
 
-Requirements
+### Requirements
 
 - Node.js 22+
 
-Install
+### Install
 
+```bash
 curl -sL https://lethimcook.online/install.sh | bash
+```
 
-Start
+### Start
 
+```bash
 cook onboard
 cook chat
+```
 
 ---
 

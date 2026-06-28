@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "skills": {
+    "searchWeb": { "description": "Search the internet", "requiresAuth": false },
+    "writeMemory": { "description": "Save data to local disk", "requiresAuth": true },
+    "executeCode": { "description": "Run terminal commands", "requiresAuth": true, "dangerous": true }
+  }
+}

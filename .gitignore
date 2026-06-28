@@ -3,3 +3,5 @@ memory/
 *.token
 .cook-agent/
 dist/
+.env
+packages/.env

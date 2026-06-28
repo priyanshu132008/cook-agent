@@ -1,0 +1,18 @@
+{
+  "name": "@cook-agent/core",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/agent.ts",
+  "exports": {
+    ".": "./src/agent.ts",
+    "./memory": "./src/memory.ts"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "chalk": "^5.6.2",
+    "cheerio": "^1.2.0"
+  }
+}

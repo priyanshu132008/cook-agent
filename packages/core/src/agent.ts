@@ -1,88 +1,54 @@
-// Cook Agent — agent.ts
-// Day 1 / Foundation — strict TypeScript execution loop
-// Talks to local Ollama via native fetch. No abstractions. No LangChain.
-// Raw string in, raw string out.
+import { readMemory, writeMemory, appendMemory } from './memory.ts';
+import { generateLocal, generateCloud } from './models.ts';
+import { compressMemory } from './compressor.ts';
+import { searchWeb } from './search.ts';
+import chalk from 'chalk';
 
-const OLLAMA_ENDPOINT = "http://localhost:11434/api/generate";
-const DEFAULT_MODEL = "phi4-mini";
+export async function runAgentLoop(prompt: string): Promise<string> {
+    const profileContext = await readMemory('profile.md');
+    const optimizedContext = compressMemory(profileContext);
 
-export interface AgentRequest {
-  readonly prompt: string;
-  readonly model?: string;
-  readonly stream?: boolean;
-}
+    // 1. Log the user's prompt to persistent history
+    await appendMemory('conversations/history.md', `**USER:** ${prompt}`);
 
-export interface OllamaResponse {
-  readonly model: string;
-  readonly response: string;
-  readonly done: boolean;
-  readonly context?: ReadonlyArray<number>;
-  readonly total_duration?: number;
-  readonly eval_count?: number;
-}
+    // 2. Intelligent Interceptor: Does the AI need the internet?
+    let searchContext = '';
+    const lowerPrompt = prompt.toLowerCase();
+    if (lowerPrompt.includes('search') || lowerPrompt.includes('latest') || lowerPrompt.includes('current')) {
+        console.log('🌍 Real-time data requested. Booting Cyber-Scout...');
+        searchContext = await searchWeb(prompt);
+    }
 
-export class AgentError extends Error {
-  public readonly cause?: unknown;
-  constructor(message: string, cause?: unknown) {
-    super(message);
-    this.name = "AgentError";
-    this.cause = cause;
-  }
-}
+    // 3. Construct the final brain payload
+    let augmentedPrompt = `${optimizedContext.trim()}\n\n`;
+    if (searchContext) augmentedPrompt += `LIVE INTERNET DATA:\n${searchContext}\n\n`;
+    augmentedPrompt += `---\n\n${prompt}`;
 
-/**
- * Hits the local Ollama /api/generate endpoint with a single prompt.
- * Returns the raw assistant text. No streaming, no tool calls, no parsing.
- */
-export async function runOnce(request: AgentRequest): Promise<string> {
-  const payload = {
-    model: request.model ?? DEFAULT_MODEL,
-    prompt: request.prompt,
-    stream: false,
-  };
+    let response = '';
 
-  let response: Response;
-  try {
-    response = await fetch(OLLAMA_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch (err) {
-    throw new AgentError(
-      "Could not reach Ollama. Is it running on localhost:11434?",
-      err,
-    );
-  }
+    // 4. Read engine configuration from profile.md (profile-driven routing)
+    const profileForRouting = await readMemory('profile.md');
+    const modelMatch = profileForRouting.match(/\*\*Primary Model:\*\* (.*)/);
+    const targetModel = modelMatch ? modelMatch[1].trim() : 'llama3.2';
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new AgentError(
-      `Ollama returned ${response.status}: ${text || response.statusText}`,
-    );
-  }
+    const engineMatch = profileForRouting.match(/\*\*Engine Mode:\*\* (.*)/);
+    const engineMode = engineMatch ? engineMatch[1].trim() : 'local';
 
-  const data = (await response.json()) as OllamaResponse;
-  return data.response;
-}
+    if (engineMode === 'local') {
+        console.log(chalk.magenta(`🧠 Routing to local hardware (${targetModel})...`));
+        response = await generateLocal([{ role: 'user', content: augmentedPrompt }], targetModel);
+    } else if (engineMode === 'cloud_free' || engineMode === 'cloud_pro') {
+        console.log(chalk.cyan(`☁️ Routing to Cloud Engine (${targetModel})...`));
+        response = await generateCloud([{ role: 'user', content: augmentedPrompt }], targetModel);
+    } else {
+        // Unknown engine mode — safe default to local to avoid silently calling cloud APIs the user never opted into
+        console.log(chalk.magenta(`🧠 Routing to local hardware (${targetModel})...`));
+        response = await generateLocal([{ role: 'user', content: augmentedPrompt }], targetModel);
+    }
 
-/**
- * Sequential prompt loop. No Promise.all. One prompt at a time.
- * Each step sees the previous raw output appended to context.
- */
-export async function runLoop(
-  prompts: ReadonlyArray<string>,
-  model: string = DEFAULT_MODEL,
-): Promise<ReadonlyArray<string>> {
-  const outputs: string[] = [];
-  let history = "";
+    // 5. Save to temporary cache AND persistent history
+    await writeMemory('cache/last_run.md', response);
+    await appendMemory('conversations/history.md', `**COOK AGENT:** ${response}`);
 
-  for (const prompt of prompts) {
-    const composed = history.length > 0 ? `${history}\n${prompt}` : prompt;
-    const result = await runOnce({ prompt: composed, model });
-    outputs.push(result);
-    history = `${history}\n${result}`.trim();
-  }
-
-  return outputs;
+    return response;
 }

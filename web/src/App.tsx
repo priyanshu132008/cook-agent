@@ -91,7 +91,7 @@ export default function App() {
       <main className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 py-8 min-h-[calc(100--140px)]">
         {view === 'product' ? (
           /* ================= PRODUCT LAYOUT (IMAGE 1 PARADIGM) ================= */
-          <div className="flex flex-column items-center text-center max-w-4xl mx-auto space-y-12 pt-8">
+          <div className="flex flex-col items-center text-center max-w-4xl mx-auto space-y-12 pt-8">
             <div className="relative group">
               <div className="absolute inset-0 bg-feralOrange/20 blur-xl rounded-full group-hover:bg-feralOrange/30 transition-all duration-500 animate-pulse" />
               <div className="w-24 h-24 bg-feralDark border-2 border-feralOrange flex items-center justify-center text-feralOrange relative z-10 shadow-[0_0_20px_rgba(255,69,0,0.2)]">

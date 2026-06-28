@@ -132,16 +132,16 @@ Generate:
 
 ⚙️ Core Commands
 
-cook blueprint    # Build roadmap
-cook validate     # Validate your startup idea
-cook truth        # Brutal feedback
-cook hunt         # Find customers
-cook research     # Research anything
-cook outreach     # Generate outreach
-cook launch       # Prepare your launch
-cook standup      # Today's 3 priorities
-cook decide       # Decision partner
-cook doctor       # System diagnostics
+cook blueprint.     # Build roadmap
+cook validate       # Validate your startup idea
+cook truth     b    # Brutal feedback
+cook hunt           # Find customers
+cook research       # Research anything
+cook outreach       # Generate outreach
+cook launch         # Prepare your launch
+cook standup        # Today's 3 priorities
+cook decide         # Decision partner
+cook doctor         # System diagnostics
 
 ---
 

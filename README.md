@@ -130,18 +130,20 @@ Generate:
 
 ---
 
-⚙️ Core Commands
+## ⚙️ Core Commands
 
-cook blueprint.     # Build roadmap
-cook validate       # Validate your startup idea
-cook truth     b    # Brutal feedback
-cook hunt           # Find customers
-cook research       # Research anything
-cook outreach       # Generate outreach
-cook launch         # Prepare your launch
-cook standup        # Today's 3 priorities
-cook decide         # Decision partner
-cook doctor         # System diagnostics
+| Command | Description |
+|---------|-------------|
+| `cook blueprint` | Generate a complete build roadmap |
+| `cook validate` | Validate your startup idea |
+| `cook truth` | Brutal feedback on your product or plan |
+| `cook hunt` | Find your first customers |
+| `cook research` | Research any topic |
+| `cook outreach` | Generate personalized outreach |
+| `cook launch` | Prepare your launch strategy |
+| `cook standup` | Generate today's 3 priorities |
+| `cook decide` | Decision partner |
+| `cook doctor` | Check your installation |
 
 ---
 

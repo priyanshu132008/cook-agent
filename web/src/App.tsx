@@ -561,7 +561,7 @@ function LandingPage() {
 
         <Reveal delay={0.2}>
           <p className="max-w-2xl text-sm leading-relaxed text-gray-400 md:text-base">
-            The open-source AI co-founder that lives on your laptop. Remembers your journey. Guides your next move. Helps you ship.
+            Cook Agent is an open-source AI co-founder that lives on your laptop. Remembers your journey. Guides your next move. Helps you ship.
           </p>
         </Reveal>
       </section>

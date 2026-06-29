@@ -13,6 +13,7 @@ import { runResearchAgent } from '../../core/src/skills/research-agent.ts';
 import { runOutreachWriter } from '../../core/src/skills/outreach-writer.ts';
 import { runDecisionPartner } from '../../core/src/skills/decision-partner.ts';
 import { runAnchor } from '../../core/src/skills/anchor.ts';
+import { daemonStart, daemonStop, daemonLogs } from './daemon.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 // Accept either `cook <cmd>` or bare `<cmd>` from the global shell so the binary
@@ -27,7 +28,13 @@ const RESET = '\x1b[0m';
 async function main() {
     // Echo the parsed skill in blazing feral orange so the user sees the
     // global binary dispatched the same way the TUI would have.
-    if (command && command !== 'serve:telegram' && command !== 'approve') {
+    // (Daemon and serve commands log their own status — don't double-print.)
+    if (
+        command &&
+        command !== 'serve:telegram' &&
+        command !== 'approve' &&
+        !command.startsWith('daemon:')
+    ) {
         process.stdout.write(`${BLAZE}⚡ cook ${command}${RESET}\n`);
     }
 
@@ -78,6 +85,25 @@ async function main() {
         case 'anchor':
             await runAnchor();
             break;
+        case 'daemon:start':
+            try {
+                await daemonStart();
+            } catch (e: any) {
+                console.log(chalk.red(`\n❌ Failed to start daemon: ${e?.message ?? String(e)}\n`));
+                process.exit(1);
+            }
+            break;
+        case 'daemon:stop':
+            try {
+                await daemonStop();
+            } catch (e: any) {
+                console.log(chalk.red(`\n❌ Failed to stop daemon: ${e?.message ?? String(e)}\n`));
+                process.exit(1);
+            }
+            break;
+        case 'daemon:logs':
+            daemonLogs();
+            break;
         default:
             console.log(blazeOrange.bold('\n [ COOK AGENT ] - FERAL BUILDER CLI \n'));
             console.log(chalk.white(' Core Setup:'));
@@ -97,8 +123,11 @@ async function main() {
             console.log(`   ${chalk.cyan('cook anchor')}      - 2 AM motivation protocol\n`);
 
             console.log(chalk.white(' Daemons:'));
-            console.log(`   ${chalk.cyan('cook serve:telegram')} - Boot Telegram Bot`);
-            console.log(`   ${chalk.cyan('cook approve <code>')} - Pair remote device\n`);
+            console.log(`   ${chalk.cyan('cook serve:telegram')}  - Boot Telegram Bot`);
+            console.log(`   ${chalk.cyan('cook approve <code>')}  - Pair remote device`);
+            console.log(`   ${chalk.cyan('cook daemon:start')}    - Run Telegram Bot in background (pm2)`);
+            console.log(`   ${chalk.cyan('cook daemon:stop')}     - Stop background daemon`);
+            console.log(`   ${chalk.cyan('cook daemon:logs')}     - Stream daemon output\n`);
     }
 }
 

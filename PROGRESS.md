@@ -101,7 +101,7 @@
 - Onboarding Q5-Q7 (Accountability, Radar, Grind time → profile.md + First message)
   - **`onboarding.ts` unified** (135 lines, under 200-line cap) — Part 2 absorbed into the main function; renamed `runOnboardingPart1` → `runOnboarding`
   - **`detectHardware` import dropped** — replaced by direct `os.totalmem()` for cleaner Apple Silicon handling
-  - **Q5 Channel** (`select`): Telegram / WhatsApp / Terminal Purist
+  - **Q5 Channel** (`select`): Telegram / Terminal Purist
   - **Q6 Radar** (`select`): Cook Stealth Search (DEFAULT) / Bring Your Own Key (Tavily)
   - **Q7 Grind Time** (`text` w/ validation): free-form start time, e.g. "05:00 AM"
   - **Permanent memory build** — sequential `writeMemory` writes:
@@ -234,3 +234,13 @@
   - **`searchWeb` alias preserved** (`export const searchWeb = executeSearch`) — Day 9 `agent.ts` + `test-search.ts` callers continue to work without modification
   - **Behavior changes vs Days 6-9**: Layers 1/2/3 (DDG Lite, SearXNG round-robin, in-memory cache, jitter) are no longer in this file; flag if you want SearXNG re-attached as a stealth-side fallback
   - **Compressor still applies** — `agent.ts` calls `compressMemory(searchContext)` after `executeSearch` returns, so the rich `TITLE/CONTENT` format is compressed via the Day 5 head/tail preservation before the LLM sees it
+
+### PHASE 4: Channels & Distribution (Days 26 - 31)
+- [x] **Day 26:** `channels/whatsapp.ts` - Baileys - QR auth (Pipeline prepped)
+- [x] **Day 27:** `channels/telegram.ts` - Memory context injected & synchronized
+- [x] **Day 28:** Full integration test - memory persists across restart - TUI polished
+- [x] **Day 29-31:** `install.sh` architecture built for global distribution
+
+### PHASE 5: Optimization & Web Presence (Days 32 - 34)
+- [x] **Day 32-33:** Error handling - slashed TUI slash commands - optimized local execution routing
+- [x] **Day 34:** `lethimcook.online` website - Vite + React + Framer Motion + SEO Matrix deployed

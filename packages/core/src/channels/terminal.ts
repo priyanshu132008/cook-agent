@@ -15,14 +15,14 @@ import { runAnchor } from '../skills/anchor.ts';
 import { runDoctor } from '../skills/doctor.ts';
 
 // Module-level chat history — survives recursive startTerminalChat() calls so the LLM
-// retains context across slash-command skill runs within the same TUI session.
+// retains context across cook <skill> runs within the same TUI session.
 const chatHistory: ChatMessage[] = [];
 const MAX_TURNS = 20;
 
 export async function startTerminalChat(isRecursive = false) {
     if (!isRecursive) {
         console.clear();
-        console.log(chalk.hex('#FF4500')('🔥 FERAL TERMINAL UPLINK ESTABLISHED. Type "/exit" to close.\n'));
+        console.log(chalk.hex('#FF4500')('🔥 FERAL TERMINAL UPLINK ESTABLISHED. Type "cook exit" or "exit" to close.\n'));
     }
 
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -85,11 +85,10 @@ ${memoryState}
     const chatLoop = () => {
         rl.question(chalk.cyan('You > '), async (input) => {
             const trimmed = input.trim();
-            const lowerCommand = trimmed.toLowerCase();
-            const slashCommand = trimmed.split(' ')[0];
+            const lowerInput = trimmed.toLowerCase();
 
-            // Exit
-            if (lowerCommand === '/exit' || lowerCommand === 'exit') {
+            // Bare exit — drop the uplink
+            if (lowerInput === 'exit') {
                 console.log(chalk.gray('Closing uplink...'));
                 rl.close();
                 return;
@@ -98,24 +97,48 @@ ${memoryState}
             // Empty input — re-prompt
             if (!trimmed) return chatLoop();
 
-            // Slash command router — close readline, run skill, reopen chat
+            // `cook <command>` router — mirrors the global shell binary.
+            // We accept the exact prefix `cook ` (case-insensitive) and dispatch on the next word.
+            const COOK_PREFIX = 'cook ';
+            let subcommand: string | null = null;
+
+            if (lowerInput === 'cook') {
+                // `cook` with no arg — conversational fallback below
+                subcommand = null;
+            } else if (lowerInput.startsWith(COOK_PREFIX)) {
+                subcommand = lowerInput.slice(COOK_PREFIX.length).split(/\s+/)[0];
+            }
+
+            // cook exit — drop the uplink
+            if (subcommand === 'exit') {
+                console.log(chalk.gray('Closing uplink...'));
+                rl.close();
+                return;
+            }
+
             const skillMap: Record<string, () => Promise<void>> = {
-                '/truth': runHardTruth,
-                '/hunt': runCustomerFinder,
-                '/decide': runDecisionPartner,
-                '/blueprint': runBuildGuide,
-                '/validate': runIdeaValidator,
-                '/research': runResearchAgent,
-                '/outreach': runOutreachWriter,
-                '/launch': runLaunchSequence,
-                '/anchor': runAnchor,
-                '/doctor': runDoctor
+                'truth': runHardTruth,
+                'hunt': runCustomerFinder,
+                'decide': runDecisionPartner,
+                'blueprint': runBuildGuide,
+                'validate': runIdeaValidator,
+                'research': runResearchAgent,
+                'outreach': runOutreachWriter,
+                'launch': runLaunchSequence,
+                'anchor': runAnchor,
+                'doctor': runDoctor
             };
 
-            if (skillMap[slashCommand]) {
+            if (subcommand && skillMap[subcommand]) {
+                // Dynamic color injection — echo the parsed `cook <cmd>` in blazing feral orange
+                // (ANSI 256-color block) so the user sees their intent was correctly routed.
+                const BLAZE = '\x1b[38;5;208m';
+                const RESET = '\x1b[0m';
+                process.stdout.write(`${BLAZE}⚡ cook ${subcommand}${RESET}\n`);
+
                 rl.close();
                 try {
-                    await skillMap[slashCommand]();
+                    await skillMap[subcommand]();
                 } catch (e: any) {
                     console.log(chalk.red(`\n❌ Skill crashed: ${e.message}\n`));
                 }

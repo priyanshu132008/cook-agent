@@ -15,10 +15,22 @@ import { runDecisionPartner } from '../../core/src/skills/decision-partner.ts';
 import { runAnchor } from '../../core/src/skills/anchor.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
-const args = process.argv.slice(2);
+// Accept either `cook <cmd>` or bare `<cmd>` from the global shell so the binary
+// matches the TUI's `cook <command>` router byte-for-byte.
+const rawArgs = process.argv.slice(2);
+const args: string[] =
+    rawArgs[0] && rawArgs[0].toLowerCase() === 'cook' ? rawArgs.slice(1) : rawArgs;
 const command = args[0];
+const BLAZE = '\x1b[38;5;208m';
+const RESET = '\x1b[0m';
 
 async function main() {
+    // Echo the parsed skill in blazing feral orange so the user sees the
+    // global binary dispatched the same way the TUI would have.
+    if (command && command !== 'serve:telegram' && command !== 'approve') {
+        process.stdout.write(`${BLAZE}⚡ cook ${command}${RESET}\n`);
+    }
+
     switch (command) {
         case 'onboard':
             await runOnboarding();

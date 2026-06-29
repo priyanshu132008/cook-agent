@@ -1,6 +1,7 @@
 <div align="center">
   <h1 style="color: #FF4500; font-size: 3em; font-weight: 800; border-bottom: none;">&gt;_ COOK_AGENT</h1>
-  <p><strong>LET HIM COOK. The autonomous engineering node built for the trenches.</strong></p>
+  <p><strong>The open-source AI co-founder that lives on your laptop.
+Remembers your journey. Guides your next move. Helps you ship..</strong></p>
   
   <p>
     <img src="https://img.shields.io/badge/Node.js-22%2B-339933?style=for-the-badge&logo=node.js" alt="Node" />
@@ -10,53 +11,203 @@
 </div>
 
 ---
+<p align="center">
+  🌐 <a href="https://lethimcook.online"><strong>Website</strong></a>
+  &nbsp;•&nbsp;
+  📖 <a href="https://lethimcook.online/docs"><strong>Documentation</strong></a>
+</p>
 
-## ⚡️ What is it?
-**Cook Agent** is not a SaaS product. It is not backed by venture capital, and it does not harvest your data to train corporate models. It is a feral, multi-modal AI co-founder that lives permanently inside your laptop. 
+⚡ What is Cook?
 
-It executes locally, maintains persistent context of your projects, and interfaces directly with you via your Terminal, Telegram, or WhatsApp. 
+Cook is an open-source AI co-founder.
 
-## 🚀 Quick Start Matrix
+It remembers what you're building, keeps you accountable, validates your ideas, finds customers, helps you make decisions, and tells you what to build next.
 
-**Requirements:** Node.js v22 or higher.
+Unlike a normal chatbot, Cook grows with you.
 
-Open your primary terminal environment and fire the direct setup string:
+Why builders love it:
+
+- 🖥️ Runs locally
+- 🧠 Persistent memory
+- 🔒 Your data stays on your machine
+- 🚫 No subscriptions
+- 🚫 No cloud memory
+- 🚫 No vendor lock-in
+
+---
+
+## 🚀 Install
+
+### Requirements
+
+- Node.js 22+
+
+### Install
+
 ```bash
-curl -sL lethimcook.online/install.sh | bash
-Once forged, initialize the trench alignment flow:
-Core Architecture & Features
-🔓 Compatible with Free AI Models: Powered by OpenRouter, allowing you to route intelligence through Llama 3, Claude, Gemini, or completely free/open-source LLMs. Zero forced API subscriptions.
+curl -sL https://lethimcook.online/install.sh | bash
+```
 
-💾 Persistent Local Memory: No cloud databases. Maintains immutable structure matrices inside your project folder at /memory/ via standard Markdown files. It never forgets the context of your app.
+### Start
 
-🛡️ Vulnerability Shield (Local Security): Strict read/write process constraints. System operations lock downstream dependencies to prevent directory-traversal exploits or unauthorized script manipulation. Your code stays yours.
+```bash
+cook onboard
+cook chat
+```
 
-📡 Stealth Radar (Web Search): Scrapes localized vectors, documentation, and dynamic web environments utilizing randomized browsing parameters to bring live, factual data directly into your terminal.
+---
 
-⚔️ The 10 Operational Skills
-The Feral Engine ships with a 10-skill arsenal designed to replace an entire startup team:
+🍳 What Cook Can Do
 
-/anchor: Drops a baseline memory stake in the ground to lock in the core identity of your current project.
+🧠 Remember Everything
 
-/build-guide: Generates deep file structures, tech stacks, and step-by-step architectural blueprints.
+Cook remembers:
 
-/customer-finder: Scrapes the web to identify exact subreddits, forums, and niches where your buyers are hiding.
+- Ideas
+- Projects
+- Progress
+- Research
+- Decisions
+- Daily standups
 
-/decision-partner: Acts as a ruthless sounding board for active architectural and business trade-off evaluations.
+Everything is stored locally inside "/memory/" as Markdown.
 
-/doctor: Verifies memory blocks, API keys, and operating structures to ensure the engine is perfectly calibrated.
+---
 
-/hard-truth: Fires the ego-verification script. Brutally roasts your startup idea to expose massive flaws before you write code.
+🎯 Give You Direction
 
-/idea-validator: Cross-references your concept against current market trends and competitor search data.
+Every day Cook asks:
 
-/launch-sequence: Builds a step-by-step go-to-market timeline to get you from localhost to first revenue.
+«What did you ship yesterday?»
 
-/outreach-writer: Drafts high-converting, non-cringe cold DMs and emails tailored to your specific target audience.
+Then gives you exactly 3 priorities for today.
 
-/research-agent: Deep-dives into technical documentation or competitor pricing models and synthesizes the data into localized summaries.
+Not twenty.
 
-📱 Multi-Modal Execution
-Why stay locked to a laptop? Run the daemon to securely tunnel your agent to your mobile device:
-cook serve:telegram
-Wakes you up every morning via Telegram to drop task matrices and intelligence directly into your DMs.
+Three.
+
+---
+
+🚀 Validate Ideas
+
+- Research competitors
+- Find market gaps
+- Challenge weak ideas
+- Tell you the hard truth
+
+---
+
+🌐 Research the Web
+
+Research documentation, competitors and technical topics.
+
+Optimized for local AI models.
+
+---
+
+👥 Find Customers
+
+Discover:
+
+- Reddit communities
+- IndieHackers
+- LinkedIn prospects
+- Forums
+- Early adopters
+
+Generate personalized outreach based on where your customers actually hang out.
+
+---
+
+📢 Launch Your Product
+
+Generate:
+
+- Product Hunt launch
+- Reddit posts
+- X threads
+- LinkedIn posts
+- Launch checklist
+
+---
+
+💻 Runs on Your Laptop
+
+- Local-first
+- Hardware aware
+- Free AI models
+- Privacy by default
+
+---
+
+## ⚙️ Core Commands
+
+| Command | Description |
+|---------|-------------|
+| `cook blueprint` | Generate a complete build roadmap |
+| `cook validate` | Validate your startup idea |
+| `cook truth` | Brutal feedback on your product or plan |
+| `cook hunt` | Find your first customers |
+| `cook research` | Research any topic |
+| `cook outreach` | Generate personalized outreach |
+| `cook launch` | Prepare your launch strategy |
+| `cook standup` | Generate today's 3 priorities |
+| `cook decide` | Decision partner |
+| `cook doctor` | Check your installation |
+
+---
+
+🎯 Who Is It For?
+
+Cook is built for builders.
+
+Perfect if you:
+
+- 🎓 Are a student founder
+- 🚀 Are building your first startup
+- 🤖 Run an AI agency
+- 💻 Build SaaS
+- 🛠️ Are an indie hacker
+- 💸 Can't afford expensive AI subscriptions
+- 🍳 Want an AI co-founder instead of another chatbot
+
+---
+
+📖 Philosophy
+
+Cook isn't another AI assistant.
+
+It exists for one reason:
+
+«Help builders ship.»
+
+- Progress over motivation.
+- Execution over perfection.
+- Direction over information.
+
+---
+
+🗺️ 🗺️ Roadmap
+
+- [x] Local-first architecture
+- [x] Persistent memory
+- [x] Founder onboarding
+- [x] Core skill system
+- [x] Telegram accountability
+- [x] Terminal TUI
+- [x] Daily standups
+- [x] Customer finder
+- [x] Launch assistant
+---
+
+
+
+<div align="center">
+
+🍳 LET HIM COOK.
+
+Build. Ship. Repeat.
+
+⭐ If Cook helps you, consider starring the repository.
+
+</div>

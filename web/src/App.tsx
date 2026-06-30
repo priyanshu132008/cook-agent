@@ -601,7 +601,7 @@ function LandingPage() {
                 os === 'win' ? 'bg-[#FF4500] text-black shadow-[0_0_10px_rgba(255,69,0,0.4)]' : 'text-gray-500 hover:text-white'
               }`}
             >
-              Windows · WSL
+              Windows
             </button>
           </div>
         </div>
@@ -625,7 +625,7 @@ function LandingPage() {
             <span className="bg-gradient-to-r from-white via-[#FF4500] to-white bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_3s_linear_infinite]">
               {os === 'mac'
                 ? 'curl -sL lethimcook.online/install.sh | bash'
-                : 'wsl --install -d Ubuntu && curl -sL lethimcook.online/install.sh | bash'}
+                : 'iwr -useb lethimcook.online/install.ps1 | iex'}
             </span>
           </code>
           <button

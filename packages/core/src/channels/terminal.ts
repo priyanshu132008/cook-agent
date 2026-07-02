@@ -94,16 +94,27 @@ ${memoryState}
             // Empty input — re-prompt
             if (!trimmed) return chatLoop();
 
-            // `cook <command>` router — mirrors the global shell binary.
-            // We accept the exact prefix `cook ` (case-insensitive) and dispatch on the next word.
+            // `cook <command> [args...]` router — mirrors the global shell binary.
+            // We accept the exact prefix `cook ` (case-insensitive). The first word
+            // after `cook ` is the subcommand; the rest is forwarded to the skill
+            // as a free-form prompt override (e.g. `cook research Axora IO`).
             const COOK_PREFIX = 'cook ';
             let subcommand: string | null = null;
+            let subcommandArgs = '';
 
             if (lowerInput === 'cook') {
                 // `cook` with no arg — conversational fallback below
                 subcommand = null;
             } else if (lowerInput.startsWith(COOK_PREFIX)) {
-                subcommand = lowerInput.slice(COOK_PREFIX.length).split(/\s+/)[0];
+                const tail = input.slice(COOK_PREFIX.length).trim();
+                const splitIdx = tail.search(/\s/);
+                if (splitIdx === -1) {
+                    subcommand = tail.toLowerCase();
+                } else {
+                    subcommand = tail.slice(0, splitIdx).toLowerCase();
+                    // Preserve original casing/punctuation in the forwarded args
+                    subcommandArgs = tail.slice(splitIdx + 1).trim();
+                }
             }
 
             // cook exit — drop the uplink
@@ -113,7 +124,7 @@ ${memoryState}
                 return;
             }
 
-            const skillMap: Record<string, () => Promise<void>> = {
+            const skillMap: Record<string, (args: string) => Promise<void>> = {
                 'truth': runHardTruth,
                 'hunt': runCustomerFinder,
                 'decide': runDecisionPartner,
@@ -135,7 +146,7 @@ ${memoryState}
 
                 rl.close();
                 try {
-                    await skillMap[subcommand]();
+                    await skillMap[subcommand](subcommandArgs);
                 } catch (e: any) {
                     console.log(chalk.red(`\n❌ Skill crashed: ${e.message}\n`));
                 }

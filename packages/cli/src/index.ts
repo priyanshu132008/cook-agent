@@ -62,7 +62,7 @@ async function main() {
             await runIdeaValidator();
             break;
         case 'hunt':
-            await runCustomerFinder();
+            await runCustomerFinder(args.slice(1).join(' '));
             break;
         case 'launch':
             await runLaunchSequence();
@@ -74,7 +74,7 @@ async function main() {
             await runBuildGuide();
             break;
         case 'research':
-            await runResearchAgent();
+            await runResearchAgent(args.slice(1).join(' '));
             break;
         case 'outreach':
             await runOutreachWriter();

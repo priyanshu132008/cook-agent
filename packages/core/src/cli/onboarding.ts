@@ -148,20 +148,21 @@ export async function runOnboarding() {
             const tokenInput = handleCancel(await text({
                 message: 'Paste your Telegram Bot Token (Press Enter to skip for now):'
             }));
-            const token = tokenInput.trim();
+            const token = (tokenInput || '').trim();
             if (token) {
                 await updateEnvFile('TELEGRAM_BOT_TOKEN', token);
                 console.log(chalk.green("\n✅ Bot token secured. Run 'cook serve:telegram' later to boot the daemon."));
             }
         }
 
-        const grindTime = handleCancel(await text({ message: 'What time are we starting the grind?' }));
+        const grindTimeInput = handleCancel(await text({ message: 'What time are we starting the grind?' }));
+        const grindTime = (grindTimeInput || '').trim() || 'sometime today';
 
         const buildSpinner = spinner();
         buildSpinner.start('Compiling neural profile & securing keys...');
 
-        await writeMemory('idea.md', `# The Cook\n${idea.trim() || '[User skipped during onboarding]'}\n\n## Phase\n${level}\n\n## Main Boss\n${blocker}`);
-        await writeMemory('status.md', `# Current Status\n${status.trim() || '[User skipped during onboarding]'}`);
+        await writeMemory('idea.md', `# The Cook\n${(idea || '').trim() || '[User skipped during onboarding]'}\n\n## Phase\n${level}\n\n## Main Boss\n${blocker}`);
+        await writeMemory('status.md', `# Current Status\n${(status || '').trim() || '[User skipped during onboarding]'}`);
         await writeMemory('profile.md', `# FOUNDER PROFILE\n**Engine Mode:** ${engineMode}\n**Primary Model:** ${finalModel}\n**Radar Setting:** ${radar}\n**Accountability:** ${channel}\n**Daily Grind Time:** ${grindTime}\n`);
 
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -177,7 +178,7 @@ export async function runOnboarding() {
         });
         bootRl.close();
 
-        const normalized = bootAnswer.trim().toLowerCase();
+        const normalized = (bootAnswer || '').trim().toLowerCase();
         if (normalized === 'y' || normalized === 'yes' || normalized === '') {
             await startTerminalChat();
         } else {

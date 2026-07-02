@@ -15,6 +15,10 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 const URL_REGEX = /^https?:\/\//i;
 const URL_IN_STRING = /(https?:\/\/\S+)/i;
 
+function isNonInteractive(): boolean {
+    return !!(globalThis as any).__COOK_NONINTERACTIVE__;
+}
+
 function looksLikeUrl(input: string): boolean {
     return URL_REGEX.test(input.trim());
 }
@@ -25,15 +29,23 @@ function extractUrl(input: string): string | null {
 }
 
 export async function runCustomerFinder(initialTarget = '') {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: CUSTOMER FINDER PROTOCOL ] '));
+    // Never clear the operator's terminal in a headless context — the
+    // Telegram daemon's PM2 log buffer IS the terminal.
+    if (!isNonInteractive()) {
+        console.clear();
+        intro(blazeOrange.bold(' [ SKILL: CUSTOMER FINDER PROTOCOL ] '));
+    }
 
     // Target resolution: an explicit target from `cook hunt <target>` always wins.
-    // Otherwise, fall back to the interactive prompt so the legacy flow keeps
-    // working from `cook hunt` with no arguments.
+    // Otherwise, fall back to the interactive prompt — but only on a real TTY.
     let target = initialTarget.trim();
 
     if (!target) {
+        if (isNonInteractive()) {
+            const usage = '⚠️ Missing arguments. Usage: /hunt <audience/URL>';
+            console.log(usage);
+            return usage;
+        }
         const { text } = await import('@clack/prompts');
         const answer = await text({
             message: chalk.white('Who are we hunting? (audience, market, URL, or paste a competitor link)'),
@@ -43,7 +55,7 @@ export async function runCustomerFinder(initialTarget = '') {
             }
         });
         if (typeof answer !== 'string') {
-            process.exit(0);
+            return 'Hunt cancelled.';
         }
         target = answer.trim();
     }
@@ -189,8 +201,13 @@ Output raw markdown only. Do not wrap in markdown code fences or backticks. If t
         console.log(`${chalk.dim('💾 Leads permanently stored at:')} ${chalk.cyan('memory/customers.md')}\n`);
         outro(blazeOrange('Customer lookup cycle closed.'));
 
-    } catch (error) {
+    } catch (error: any) {
         s.stop(chalk.red('❌ Hunting sequence compromised.'));
+        if (isNonInteractive()) {
+            const msg = `❌ Hunt engine failed: ${error?.message ?? String(error)}`;
+            console.log(msg);
+            return msg;
+        }
         console.error(error);
         process.exit(1);
     }

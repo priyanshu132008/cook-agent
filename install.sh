@@ -24,6 +24,16 @@ if [ ! -f .env ]; then
     touch .env
 fi
 
+# 4b. Bootstrap the user-scoped Telegram auth store at ~/.cook/memory/.
+#     Pre-creating the directory + default tg_auth.json means a brand-new
+#     install hits a working file the moment `cook daemon:start` boots the
+#     polling loop, with no read-on-empty-file race.
+COOK_AUTH_DIR="$HOME/.cook/memory"
+mkdir -p "$COOK_AUTH_DIR"
+if [ ! -f "$COOK_AUTH_DIR/tg_auth.json" ]; then
+    printf '{"allowedIds":[],"pending":{}}\n' > "$COOK_AUTH_DIR/tg_auth.json"
+fi
+
 # 5. Launch the Onboarding Configurator
 echo -e "\033[32m✅ Packages installed. Launching System Calibration...\033[0m\n"
 node --env-file=.env --experimental-strip-types packages/core/src/cli/onboarding.ts

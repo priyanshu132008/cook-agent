@@ -11,6 +11,14 @@ const hackerGreen = chalk.hex('#00FF00');
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+/** Set by the Telegram dispatcher before invoking a skill. Skills that
+ *  have an interactive stdin fallback (this one, customer-finder) MUST
+ *  bail with a friendly error string instead of prompting, or the
+ *  headless daemon deadlocks on a phantom TTY. */
+function isNonInteractive(): boolean {
+    return !!(globalThis as any).__COOK_NONINTERACTIVE__;
+}
+
 // Strip a leading URL out of a free-form prompt and return the URL + the
 // remaining prose. Lets users paste `cook research https://example.com Axora IO`
 // and still get context alongside the scrape.
@@ -23,16 +31,29 @@ function splitUrlAndRest(input: string): { url: string | null; rest: string } {
 }
 
 export async function runResearchAgent(initialTopic = '') {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: DEEP RESEARCH PROTOCOL ] '));
+    // Don't ever clear the operator's terminal in a headless context —
+    // the Telegram daemon's PM2 log buffer IS the terminal, and clearing
+    // it mid-run blinds whoever is watching the host.
+    if (!isNonInteractive()) {
+        console.clear();
+        intro(blazeOrange.bold(' [ SKILL: DEEP RESEARCH PROTOCOL ] '));
+    }
 
     // Topic resolution: explicit args from `cook research <topic>` always win.
-    // The interactive prompt is only shown when no topic was provided.
+    // The interactive prompt is only shown when no topic was provided AND
+    // we're not in a headless channel (Telegram daemon, etc.).
     let topic = initialTopic.trim();
 
     if (!topic) {
+        if (isNonInteractive()) {
+            // Bail with a usage string the dispatcher can ship back to the
+            // chat. No stdin prompt — would deadlock the daemon.
+            const usage = '⚠️ Missing arguments. Usage: /research <topic/URL>';
+            console.log(usage);
+            return usage;
+        }
         // Fall through to the legacy interactive flow so the skill stays usable
-        // from `cook research` with no arguments.
+        // from `cook research` with no arguments on a real TTY.
         const { text } = await import('@clack/prompts');
         const answer = await text({
             message: chalk.white('Enter the exact technical topic, market, or URL to research:'),
@@ -42,7 +63,9 @@ export async function runResearchAgent(initialTopic = '') {
             }
         });
         if (typeof answer !== 'string') {
-            process.exit(0);
+            // process.exit would kill the daemon — in a TTY it's safe, but
+            // guard anyway. Returning keeps the parent process alive.
+            return 'Research cancelled.';
         }
         topic = answer.trim();
     }
@@ -150,9 +173,17 @@ Generate a highly dense, zero-fluff markdown briefing. Format exactly as follows
 
         outro(blazeOrange('Research protocol finalized.'));
 
-    } catch (error) {
+    } catch (error: any) {
         s.stop(chalk.red('❌ Core engine failed during extraction.'));
+        if (isNonInteractive()) {
+            // Never kill the host process from a headless context. The
+            // dispatcher will capture this string and ship it to the user.
+            const msg = `❌ Research engine failed: ${error?.message ?? String(error)}`;
+            console.log(msg);
+            return msg;
+        }
         console.error(error);
+        // On a real TTY, exiting is fine — the operator invoked us directly.
         process.exit(1);
     }
 }

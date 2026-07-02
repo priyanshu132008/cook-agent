@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { generateLocal, generateCloud } from '../models.ts';
 import type { ChatMessage } from '../models.ts';
 import { readMemory } from '../memory.ts';
@@ -16,20 +17,63 @@ import { runAnchor } from '../skills/anchor.ts';
 import { runDoctor } from '../skills/doctor.ts';
 
 const PROJECT_ROOT = process.cwd();
-const AUTH_FILE = path.join(PROJECT_ROOT, 'memory', 'tg_auth.json');
+// User-scoped auth store — lives in ~/.cook/memory so pairing survives across
+// project clones and reinstalls. Auto-bootstrapped on first read so a fresh
+// install never sees a "file not found" crash mid-pairing.
+const AUTH_DIR = path.join(os.homedir(), '.cook', 'memory');
+const AUTH_FILE = path.join(AUTH_DIR, 'tg_auth.json');
+const DEFAULT_AUTH_STATE = { allowedIds: [] as number[], pending: {} as Record<string, string> };
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+/** Ensure ~/.cook/memory exists and tg_auth.json holds a valid default state.
+ *  Idempotent — safe to call from every entry point. */
+async function bootstrapAuthFile(): Promise<void> {
+    try {
+        await fs.mkdir(AUTH_DIR, { recursive: true });
+        try {
+            const raw = await fs.readFile(AUTH_FILE, 'utf-8');
+            const parsed = JSON.parse(raw);
+            // Repair shape: a hand-edited or partially-written file might be
+            // missing one of the two top-level keys. Merge defaults under the
+            // existing object so we never destroy a real allowlist.
+            if (!Array.isArray(parsed.allowedIds) || typeof parsed.pending !== 'object' || parsed.pending === null) {
+                const repaired = { ...DEFAULT_AUTH_STATE, ...parsed };
+                await fs.writeFile(AUTH_FILE, JSON.stringify(repaired, null, 2));
+            }
+        } catch {
+            // File missing or unreadable — write the canonical default.
+            await fs.writeFile(AUTH_FILE, JSON.stringify(DEFAULT_AUTH_STATE, null, 2));
+        }
+    } catch (e) {
+        // Bootstrap failure (permissions, disk full) — fall through. The
+        // existing in-memory default returned by getAuthData() still keeps
+        // the bot from crashing; pairing just won't persist.
+    }
+}
+
 async function getAuthData() {
+    await bootstrapAuthFile();
     try {
         const data = await fs.readFile(AUTH_FILE, 'utf-8');
         return JSON.parse(data);
     } catch {
-        return { allowedIds: [], pending: {} };
+        return { ...DEFAULT_AUTH_STATE };
     }
 }
 
 async function saveAuthData(data: any) {
+    await bootstrapAuthFile();
     await fs.writeFile(AUTH_FILE, JSON.stringify(data, null, 2));
+}
+
+/** Generate a 4-digit pairing code and persist it under `pending` for a new
+ *  chat ID. Returns the code so the caller can DM it back to the user. */
+async function issuePairingCode(chatId: number): Promise<string> {
+    const code = String(Math.floor(1000 + Math.random() * 9000));
+    const data = await getAuthData();
+    data.pending[String(chatId)] = code;
+    await saveAuthData(data);
+    return code;
 }
 
 export async function approveTelegram(code: string) {
@@ -179,6 +223,17 @@ async function runSkillCapturingOutput(skill: TelegramSkill): Promise<string> {
     return cleanTerminalText(chunks.join(''));
 }
 
+/** Bind a parsed Telegram command to its underlying skill with the right
+ *  argument. Most skills take no args; `research` and `hunt` get the
+ *  trimmed arg-string (URL or free-text query) the user supplied. */
+function makeSkillRunner(name: string, args: string): TelegramSkill {
+    switch (name) {
+        case 'research': return () => runResearchAgent(args);
+        case 'hunt':     return () => runCustomerFinder(args);
+        default:         return TELEGRAM_SKILL_MAP[name];
+    }
+}
+
 /** Send one or more Telegram messages, chunking to fit the 4096-char limit.
  *  Adds a `(<i>/<n>)` suffix on multi-chunk sends so the user knows how to
  *  read the sequence. */
@@ -205,19 +260,35 @@ async function sendTelegramChunked(
     }
 }
 
-/** Parse an incoming Telegram message into a `cook <cmd>` invocation.
- *  Accepts `cook <cmd> [args...]` (case-insensitive) and `cook <cmd>` only.
- *  Returns the bare subcommand if it matches a registered skill, else null. */
-function parseSkillCommand(text: string): string | null {
+/** Parse an incoming Telegram message into a `cook <cmd> [args...]` invocation.
+ *  Accepts `cook <cmd> [args...]` (case-insensitive). Returns the bare
+ *  subcommand + the rest of the line as a single trimmed arg-string, or
+ *  null if the message isn't a skill command. The arg-string preserves
+ *  internal whitespace so URLs and quoted phrases survive intact. */
+function parseSkillCommand(text: string): { name: string; args: string } | null {
     const trimmed = text.trim();
     const lower = trimmed.toLowerCase();
     if (lower === 'cook') return null;
     if (!lower.startsWith('cook ')) return null;
 
-    const sub = lower.slice('cook '.length).split(/\s+/)[0];
-    if (sub in TELEGRAM_SKILL_MAP) return sub;
-    return null;
+    // Slice on the original (non-lowercased) string to preserve case in URLs
+    // and prose, but resolve the subcommand case-insensitively.
+    const afterPrefix = trimmed.slice('cook '.length).replace(/^\s+/, '');
+    if (!afterPrefix) return null;
+
+    const spaceIdx = afterPrefix.search(/\s/);
+    const sub = (spaceIdx === -1 ? afterPrefix : afterPrefix.slice(0, spaceIdx)).toLowerCase();
+    if (!(sub in TELEGRAM_SKILL_MAP)) return null;
+
+    const args = spaceIdx === -1 ? '' : afterPrefix.slice(spaceIdx + 1).trim();
+    return { name: sub, args };
 }
+
+/** Set during Telegram-dispatched skill runs. Skills that prompt interactively
+ *  MUST consult this flag and return a friendly error string instead of
+ *  blocking on stdin — the daemon has no TTY. */
+const NONINTERACTIVE_FLAG = '__COOK_NONINTERACTIVE__';
+(globalThis as any)[NONINTERACTIVE_FLAG] = false;
 
 // Per-chat session history — survives across messages so the LLM retains
 // conversational context within a Telegram chat. Keyed by chatId.
@@ -301,32 +372,78 @@ export async function startTelegram() {
 
                     if (!authData.allowedIds.includes(chatId)) {
                         console.log(chalk.yellow(`🔒 Unauthorized device detected.`));
+                        // If we haven't already issued a code for this chat, mint
+                        // one and DM it back so the user can run `cook approve`.
+                        // Re-issuing on every message would spam the chat, so we
+                        // only send when `pending` is empty for this id.
+                        if (!authData.pending[String(chatId)]) {
+                            const code = await issuePairingCode(chatId);
+                            const pairingMsg =
+                                `🔒 *Pairing required.*\n\n` +
+                                `Your pairing code: \`${code}\`\n\n` +
+                                `Run on the host machine:\n` +
+                                `\`cook approve ${code}\``;
+                            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ chat_id: chatId, text: pairingMsg, parse_mode: 'Markdown' }),
+                            }).catch(() => { /* best-effort — bot may be rate-limited */ });
+                        }
                         continue;
                     }
 
                     // ─── Skill routing (parity with TUI) ───────────────────────
-                    // Intercept `cook <cmd>` BEFORE the chat pipeline so the
-                    // programmatic skill runs and its real output (not a re-LLM'd
-                    // summary) flows back to the user as Telegram messages.
-                    const skillName = parseSkillCommand(text);
-                    if (skillName) {
-                        console.log(chalk.hex('#FF4500')(`⚡ [TG] cook ${skillName} → programmatic skill`));
+                    // Intercept `cook <cmd> [args...]` BEFORE the chat pipeline
+                    // so the programmatic skill runs and its real output (not
+                    // a re-LLM'd summary) flows back to the user as Telegram
+                    // messages. Everything after the subcommand becomes the
+                    // skill's primary argument — same convention as the TUI's
+                    // `args.slice(1).join(' ')` in packages/cli/src/index.ts.
+                    const parsed = parseSkillCommand(text);
+                    if (parsed) {
+                        // Skills that need an argument (research, hunt, etc.)
+                        // would otherwise fall into an interactive stdin
+                        // prompt and deadlock the headless daemon. Refuse
+                        // empty args up front and tell the user the right
+                        // invocation.
+                        const REQUIRES_ARG: Record<string, true> = {
+                            research: true,
+                            hunt: true,
+                        };
+                        if (REQUIRES_ARG[parsed.name] && !parsed.args) {
+                            const usage = `⚠️ Missing arguments. Usage: /${parsed.name} <topic/URL>`;
+                            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ chat_id: chatId, text: usage }),
+                            }).catch(() => { /* best-effort */ });
+                            continue;
+                        }
+
+                        console.log(chalk.hex('#FF4500')(`⚡ [TG] cook ${parsed.name}${parsed.args ? ` ${parsed.args}` : ''} → programmatic skill`));
                         await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ chat_id: chatId, action: 'typing' }),
                         });
 
-                        const skillFn = TELEGRAM_SKILL_MAP[skillName];
+                        // Flip the non-interactive flag for the duration of
+                        // this skill run. Skills that have an interactive
+                        // fallback path MUST check this and bail with a
+                        // friendly error string instead of prompting stdin.
+                        (globalThis as any)[NONINTERACTIVE_FLAG] = true;
+                        const skillFn = makeSkillRunner(parsed.name, parsed.args);
                         let captured = '';
                         try {
                             captured = await runSkillCapturingOutput(skillFn);
                         } catch (e: any) {
                             captured = `❌ Skill runner crashed: ${e?.message ?? String(e)}`;
+                        } finally {
+                            (globalThis as any)[NONINTERACTIVE_FLAG] = false;
                         }
 
-                        if (!captured) {
-                            captured = `✅ cook ${skillName} finished with no output.`;
+                        if (!captured.trim()) {
+                            captured = `✅ cook ${parsed.name} finished with no output.`;
                         }
 
                         await sendTelegramChunked(token, chatId, captured);

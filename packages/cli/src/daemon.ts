@@ -2,8 +2,33 @@ import chalk from 'chalk';
 import { execSync } from 'node:child_process';
 import pm2 from 'pm2';
 import path from 'node:path';
+import fs from 'node:fs/promises';
+import os from 'node:os';
 
 const DAEMON_NAME = 'cook-agent-daemon';
+
+/** ~/.cook/memory/tg_auth.json — same path telegram.ts reads. Pre-creating
+ *  the file here means a freshly installed user who runs `cook daemon:start`
+ *  before ever pairing a device will hit a valid default file the moment
+ *  the daemon's polling loop begins, instead of a read-on-empty-file race. */
+const COOK_AUTH_DIR = path.join(os.homedir(), '.cook', 'memory');
+const COOK_AUTH_FILE = path.join(COOK_AUTH_DIR, 'tg_auth.json');
+const DEFAULT_AUTH_STATE = { allowedIds: [], pending: {} };
+
+async function ensureAuthFile() {
+    try {
+        await fs.mkdir(COOK_AUTH_DIR, { recursive: true });
+        try {
+            await fs.access(COOK_AUTH_FILE);
+        } catch {
+            await fs.writeFile(COOK_AUTH_FILE, JSON.stringify(DEFAULT_AUTH_STATE, null, 2));
+        }
+    } catch (e) {
+        // Best-effort: if we can't write the auth file, the daemon still
+        // boots — the in-memory default in telegram.ts keeps things alive
+        // and saveAuthData() will retry on the first real write.
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // PM2 background daemon for the Telegram bot.
@@ -28,7 +53,11 @@ function resolveScriptPath(): string {
 
 /** Ask PM2 to launch the Telegram daemon in the background and detach. */
 export function daemonStart(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+        // Bootstrap the auth file BEFORE handing off to PM2 — otherwise a
+        // brand-new install hits the missing-file race on the first poll.
+        await ensureAuthFile();
+
         pm2.connect((err) => {
             if (err) {
                 // Daemon already running? PM2 still connects — only error if it's real.

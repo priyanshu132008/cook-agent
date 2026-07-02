@@ -94,24 +94,51 @@ export const searchWeb = executeSearch;
 // Per project rules, ALL scraped HTML funnels through this — the LLM never
 // sees raw page noise.
 export async function scrapeUrl(url: string, seed: string = url): Promise<string> {
+    // Realistic browser footprint — most anti-bot stacks (Cloudflare/Akamai/DataDome)
+    // key off of missing/legacy User-Agent and missing Accept-Language/Cache-Control.
+    // We always present as a current macOS Chrome to maximize first-byte success.
+    const BROWSER_HEADERS: Record<string, string> = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'max-age=0',
+    };
+
     let res: Response;
+    let html: string;
     try {
-        res = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
-            }
-        });
+        res = await fetch(url, { headers: BROWSER_HEADERS });
+        if (!res.ok) {
+            // 403/503/etc. — never throw an unhandled rejection. Drop a clean warning
+            // and return a fallback string the downstream LLM can narrate.
+            console.warn(
+                `\x1b[31m⚠️ Direct scrape blocked by target firewall (HTTP ${res.status}). Falling back to search indexing...\x1b[0m`
+            );
+            return `[SCRAPE ERROR: This domain is heavily guarded by anti-bot systems. Content unavailable via direct fetch.]`;
+        }
+        html = await res.text();
     } catch (e: any) {
-        throw new Error(`Scrape failed: ${e.message}`);
+        // Network-level failure (DNS, TLS, abort, offline) — same fallback path.
+        console.warn(
+            `\x1b[31m⚠️ Direct scrape blocked by target firewall (network error: ${e?.message ?? 'unknown'}). Falling back to search indexing...\x1b[0m`
+        );
+        return `[SCRAPE ERROR: This domain is heavily guarded by anti-bot systems. Content unavailable via direct fetch.]`;
     }
-    if (!res.ok) throw new Error(`Scrape failed: HTTP ${res.status} ${res.statusText}`);
 
-    const html = await res.text();
-    const pruned = pruneDOM(html);
-    const relevant = filterByRelevance(pruned, seed);
-    const truncated = hardTruncate(relevant);
+    try {
+        const pruned = pruneDOM(html);
+        const relevant = filterByRelevance(pruned, seed);
+        const truncated = hardTruncate(relevant);
 
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-    const title = titleMatch ? titleMatch[1].trim() : url;
-    return `SOURCE: ${title} (${url})\n\n${truncated}`;
+        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+        const title = titleMatch ? titleMatch[1].trim() : url;
+        return `SOURCE: ${title} (${url})\n\n${truncated}`;
+    } catch (e: any) {
+        // Compressor itself blew up (malformed HTML, cheerio panic) — never let it
+        // crash the CLI binary. Return a structured fallback so the LLM can continue.
+        console.warn(
+            `\x1b[31m⚠️ Scrape succeeded but post-processing failed (${e?.message ?? 'unknown'}). Returning empty body.\x1b[0m`
+        );
+        return `[SCRAPE ERROR: Page fetched but content could not be processed.]`;
+    }
 }

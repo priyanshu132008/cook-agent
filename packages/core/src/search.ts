@@ -1,4 +1,31 @@
 import { readMemory } from './memory.ts';
+import * as cheerio from 'cheerio';
+
+const HARD_WORD_CAP = 2500;
+
+function pruneDOM(html: string): string {
+    const $ = cheerio.load(html);
+    $('script, style, noscript, iframe, svg, nav, footer, header, aside').remove();
+    return $('body').text().replace(/\s+/g, ' ').trim();
+}
+
+function filterByRelevance(text: string, seed: string): string {
+    const tokens = seed.toLowerCase().split(/\W+/).filter(t => t.length > 2);
+    if (tokens.length === 0) return text;
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    const keep: string[] = [];
+    for (const s of sentences) {
+        const lower = s.toLowerCase();
+        if (tokens.some(t => lower.includes(t))) keep.push(s);
+    }
+    return keep.length > 0 ? keep.join(' ') : text;
+}
+
+function hardTruncate(text: string, capWords: number = HARD_WORD_CAP): string {
+    const words = text.split(/\s+/);
+    if (words.length <= capWords) return text;
+    return `${words.slice(0, capWords).join(' ')}\n\n...[SYSTEM: ${words.length - capWords} words truncated]...`;
+}
 
 export async function executeSearch(query: string): Promise<string> {
     let profile = '';
@@ -61,3 +88,30 @@ export async function executeSearch(query: string): Promise<string> {
 // Backwards-compatible alias — preserves the Day 9 agent.ts + test-search.ts imports
 // while routing through the new universal router.
 export const searchWeb = executeSearch;
+
+// Scrape a single URL and run the result through the compressor pipeline
+// (pruneDOM -> filterByRelevance -> hardTruncate) before it ever reaches the LLM.
+// Per project rules, ALL scraped HTML funnels through this — the LLM never
+// sees raw page noise.
+export async function scrapeUrl(url: string, seed: string = url): Promise<string> {
+    let res: Response;
+    try {
+        res = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+            }
+        });
+    } catch (e: any) {
+        throw new Error(`Scrape failed: ${e.message}`);
+    }
+    if (!res.ok) throw new Error(`Scrape failed: HTTP ${res.status} ${res.statusText}`);
+
+    const html = await res.text();
+    const pruned = pruneDOM(html);
+    const relevant = filterByRelevance(pruned, seed);
+    const truncated = hardTruncate(relevant);
+
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : url;
+    return `SOURCE: ${title} (${url})\n\n${truncated}`;
+}

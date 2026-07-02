@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { generateLocal, generateCloud } from '../models.ts';
 import type { ChatMessage } from '../models.ts';
 import { readMemory } from '../memory.ts';
+import { executeSearch, scrapeUrl } from '../search.ts';
 import { runHardTruth } from '../skills/hard-truth.ts';
 import { runCustomerFinder } from '../skills/customer-finder.ts';
 import { runDecisionPartner } from '../skills/decision-partner.ts';
@@ -59,6 +60,8 @@ When the question is technical, lead with the deciding trade-off or the sharpest
 
 SKILL EXECUTION — RAW DATA ONLY:
 When executing a skill ("cook hunt", "cook truth", "cook blueprint", "cook research", "cook validate", "cook decide", "cook outreach", "cook launch", "cook anchor"), return the skill's raw structured output verbatim. Do not wrap it in "Here's what I found…" or "Let me summarize…" or any conversational bedding. Markdown headers from the skill body are allowed and encouraged. Add nothing; remove nothing.
+
+CRITICAL RULE: You do NOT have direct access to the live internet. If a user asks you to "search the web", "scrape a website", or fetch real-time data, you MUST NOT hallucinate or guess the answer. You must explicitly reply with: "[REQUIRE_SEARCH]" followed by the search query or URL. Do not provide any other text in that response.
 
 WHEN A USER EXPLICITLY ASKS FOR HELP:
 If — and only if — the user's message is exactly or contains the literal token "help"/"menu" with no other substantive question, you may list the 13 CLI commands in compact form (one per line, no prose). This is the ONLY context in which the catalog is allowed on screen.
@@ -178,6 +181,65 @@ ${memoryState}
                 }
 
                 chatHistory.push({ role: 'assistant', content: reply });
+
+                // --- [REQUIRE_SEARCH] tool-call fallback ---
+                // The model is forced (by the system prompt CRITICAL RULE) to emit this
+                // sentinel when it needs real-time data. Intercept, run the appropriate
+                // data source through the compressor pipeline, then re-ask the LLM to
+                // summarize the raw result for the user.
+                const requireMatch = reply.match(/\[REQUIRE_SEARCH\]\s*([\s\S]+)/i);
+                if (requireMatch) {
+                    const payload = requireMatch[1].trim();
+                    const isUrl = /^https?:\/\//i.test(payload);
+
+                    process.stdout.write(chalk.hex('#FF4500')(`\n⛏  ${isUrl ? 'Scraping' : 'Searching'}: `) + chalk.gray(payload) + '\n');
+
+                    // Human jitter (2-4s) per project Search Rules — never fire bursts.
+                    const jitterMs = 2000 + Math.floor(Math.random() * 2000);
+                    await new Promise(r => setTimeout(r, jitterMs));
+
+                    let raw = '';
+                    try {
+                        raw = isUrl
+                            ? await scrapeUrl(payload)
+                            : await executeSearch(payload);
+                    } catch (e: any) {
+                        console.log(chalk.red(`\n❌ Search/scrape failed: ${e.message}\n`));
+                        chatLoop();
+                        return;
+                    }
+
+                    // Cap the injected payload so we don't blow the context window.
+                    // compressor-style hard cap: 2500 words, matching HARD_WORD_CAP in search.ts.
+                    const wordCount = raw.split(/\s+/).length;
+                    const summaryTurns: ChatMessage[] = [
+                        {
+                            role: 'system',
+                            content: `[TOOL RESULT — ${isUrl ? 'SCRAPED' : 'SEARCHED'}: ${payload}]\nThe following raw data was just retrieved. Use it as the sole source of truth for your next reply. If the data is empty or irrelevant, say so in one line.\n\n${raw}`
+                        },
+                        { role: 'user', content: 'Summarize the tool result above for the user in your normal Cook voice. No preamble, no "here is the summary", just the answer.' }
+                    ];
+                    chatHistory.push(...summaryTurns);
+
+                    // Second LLM call — summarize the raw payload
+                    let summary = '';
+                    try {
+                        if (engineMode.includes('local')) {
+                            summary = await generateLocal(chatHistory, targetModel);
+                        } else {
+                            summary = await generateCloud(chatHistory, targetModel);
+                        }
+                    } catch (e: any) {
+                        console.log(chalk.red(`❌ Summarization failed: ${e.message}\n`));
+                        chatLoop();
+                        return;
+                    }
+
+                    chatHistory.push({ role: 'assistant', content: summary });
+                    console.log(chalk.hex('#00FF41')('Cook > ') + summary + `\n${chalk.gray(`[scraped ${wordCount} words → compressed → summarized]`)}\n`);
+                    chatLoop();
+                    return;
+                }
 
                 console.log(chalk.hex('#00FF41')('Cook > ') + reply + '\n');
             } catch (e: any) {

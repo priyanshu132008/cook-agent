@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { startTelegram, approveTelegram } from '../../core/src/channels/telegram.ts';
 import { startTerminalChat } from '../../core/src/channels/terminal.ts';
 import { runOnboarding } from '../../core/src/cli/onboarding.ts';
+import { runConfig } from '../../core/src/cli/config.ts';
 import { runDoctor } from '../../core/src/skills/doctor.ts';
 import { runIdeaValidator } from '../../core/src/skills/idea-validator.ts';
 import { runCustomerFinder } from '../../core/src/skills/customer-finder.ts';
@@ -41,6 +42,10 @@ async function main() {
     switch (command) {
         case 'onboard':
             await runOnboarding();
+            break;
+        case 'config':
+        case 'engine':
+            await runConfig();
             break;
         case 'doctor':
             await runDoctor();
@@ -108,6 +113,7 @@ async function main() {
             console.log(blazeOrange.bold('\n [ COOK AGENT ] - FERAL BUILDER CLI \n'));
             console.log(chalk.white(' Core Setup:'));
             console.log(`   ${chalk.cyan('cook onboard')}     - Run initial configuration`);
+            console.log(`   ${chalk.cyan('cook config')}      - Update LLM engine, model, and API key (fast path)`);
             console.log(`   ${chalk.cyan('cook doctor')}      - System integration & diagnostic test`);
             console.log(`   ${chalk.cyan('cook chat')}        - Open local terminal hatch (TUI)\n`);
 

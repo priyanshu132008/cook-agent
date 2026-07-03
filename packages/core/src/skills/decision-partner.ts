@@ -1,13 +1,13 @@
-import { note, text } from '@clack/prompts';
+import { text } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
-import { generateLocal, generateCloud } from '../models.ts';
+import { generateLocal, generateCloud, type ChatMessage } from '../models.ts';
 import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
-export async function runDecisionPartner() {
+export async function runDecisionPartner(): Promise<string> {
     introSafe(blazeOrange.bold(' [ SKILL: DECISION PARTNER ] '));
 
     const dilemma = await text({
@@ -31,22 +31,33 @@ export async function runDecisionPartner() {
 
         s.message(blazeOrange(`Synthesizing Socratic resolution via ${targetModel}...`));
 
-        const prompt = `
-You are COOK AGENT, the Principal Engineer. The user is facing this dilemma: "${dilemma}"
+        // Isolated messages — system sets the role, user carries the exact
+        // dilemma and product context. No chat history. No memory bleed.
+        const messages: ChatMessage[] = [
+            {
+                role: 'system',
+                content: `You are COOK AGENT, the Principal Engineer. The user is facing a specific dilemma. Strip the emotion out of it, give the two actual trade-offs, then make a definitive, brutal recommendation based on speed to ship. Format in raw markdown.`
+            },
+            {
+                role: 'user',
+                content: `DILEMMA:
+${dilemma}
 
-PRODUCT CONTEXT: ${idea}
+PRODUCT CONTEXT:
+${idea}`
+            }
+        ];
 
-TASK:
-1. Strip the emotion out of the decision.
-2. Give the two actual trade-offs.
-3. Make a definitive, brutal recommendation based on speed to ship.
-Format in raw markdown.
-`;
+        const resolution = isCloud
+            ? await generateCloud(messages, targetModel)
+            : await generateLocal(messages, targetModel);
 
-        const resolution = isCloud ? await generateCloud([{ role: 'user', content: prompt }], targetModel) : await generateLocal([{ role: 'user', content: prompt }], targetModel);
         s.stop(hackerGreen('✅ Decision resolved.'));
         console.log('\n' + resolution.trim() + '\n');
         outroSafe(blazeOrange('Stop thinking. Start typing.'));
+
+        // Explicit return — Telegram ships this directly to chat.
+        return resolution.trim();
     } catch (error) {
         s.stop(chalk.red('❌ Engine failure.'));
         process.exit(1);

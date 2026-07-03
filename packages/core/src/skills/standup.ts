@@ -3,12 +3,12 @@ import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { readMemory } from '../memory.ts';
-import { generateLocal, generateCloud } from '../models.ts';
+import { generateLocal, generateCloud, type ChatMessage } from '../models.ts';
 import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
-export async function runStandup() {
+export async function runStandup(): Promise<string> {
     introSafe(blazeOrange.bold(' [ DAILY STANDUP PROTOCOL ] '));
 
     const s = headlessSpinner();
@@ -34,32 +34,32 @@ export async function runStandup() {
 
         s.message(blazeOrange(`Generating level-aware battle plan using ${targetModel}...`));
 
-        // 3. Construct the strict prompt
-        const prompt = `
-You are COOK AGENT, an elite AI co-founder.
-
-THE MISSION:
+        // 3. Construct the strict prompt — split into system (role+tone) and
+        //    user (data+task). Isolated context; no chat history bleed.
+        const messages: ChatMessage[] = [
+            {
+                role: 'system',
+                content: `You are COOK AGENT, an elite AI co-founder. Based on the founder's profile level, project idea, and the recent progress log provided, generate EXACTLY 3 highly specific, actionable tasks for today's coding session. Do not include pleasantries. Use a feral, aggressive, "let's build" tone. Format strictly as a bulleted list.`
+            },
+            {
+                role: 'user',
+                content: `THE MISSION:
 ${idea}
 
 THE FOUNDER PROFILE:
 ${profile}
 
 PROGRESS SO FAR:
-${progress.substring(progress.length - 2000)} // Only look at recent progress
+${progress.substring(progress.length - 2000)} // Only look at recent progress`
+            }
+        ];
 
-TASK:
-Based on the founder's profile level, project idea, and the recent progress log, generate EXACTLY 3 highly specific, actionable tasks for today's coding session.
-- Do not include pleasantries.
-- Use a feral, aggressive, "let's build" tone.
-- Format strictly as a bulleted list.
-`;
-
-        // 4. Execute LLM Call
+        // 4. Execute LLM Call — isolated, no chat history.
         let battlePlan = '';
         if (isCloud) {
-            battlePlan = await generateCloud([{ role: 'user', content: prompt }], targetModel);
+            battlePlan = await generateCloud(messages, targetModel);
         } else {
-            battlePlan = await generateLocal([{ role: 'user', content: prompt }], targetModel);
+            battlePlan = await generateLocal(messages, targetModel);
         }
 
         s.stop(hackerGreen('✅ Battle plan secured.'));
@@ -69,6 +69,9 @@ Based on the founder's profile level, project idea, and the recent progress log,
         note(chalk.white(battlePlan.trim()), blazeOrange("TODAY'S OBJECTIVES"));
 
         outroSafe(blazeOrange('Standup complete. Get to work.'));
+
+        // Explicit return — Telegram ships this directly to chat.
+        return battlePlan.trim();
 
     } catch (error: any) {
         s.stop(chalk.red('❌ Brain offline. Failed to generate standup.'));

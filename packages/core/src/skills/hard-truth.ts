@@ -1,12 +1,12 @@
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
-import { generateLocal, generateCloud } from '../models.ts';
+import { generateLocal, generateCloud, type ChatMessage } from '../models.ts';
 import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
-export async function runHardTruth() {
+export async function runHardTruth(): Promise<string> {
     introSafe(blazeOrange.bold(' [ SKILL: HARD TRUTH MODE ] '));
 
     const s = headlessSpinner();
@@ -33,17 +33,22 @@ export async function runHardTruth() {
 
         s.message(blazeOrange(`Initializing brutal evaluation via ${targetModel}...`));
 
-        // 2. Construct Prompt
-        const prompt = `
-You are COOK AGENT, the brutally honest AI co-founder.
-Your job is to strip away founder delusion. Review the user's core idea and current progress, and tell them exactly what they are doing wrong.
+        // 2. Construct Prompt — split into system (role + tone rules) and
+        //    user (the actual data + task) so the LLM sees a clean, isolated
+        //    context with no chat-history bleed.
+        const messages: ChatMessage[] = [
+            {
+                role: 'system',
+                content: `You are COOK AGENT, the brutally honest AI co-founder. Your job is to strip away founder delusion. Review the user's core idea and current progress, and tell them exactly what they are doing wrong.
 
 USER LEVEL: ${builderLevel}
 - If Blueprint (Beginner): Be direct but instructional. Point out naive assumptions.
 - If In the Mud (Intermediate): Be harsh. Point out wasted time and feature creep.
-- If Feral Builder (Elite/Ruthless): NO MERCY. Attack their execution speed, market positioning, and blind spots aggressively. Do not compliment them.
-
-PRODUCT VISION:
+- If Feral Builder (Elite/Ruthless): NO MERCY. Attack their execution speed, market positioning, and blind spots aggressively. Do not compliment them.`
+            },
+            {
+                role: 'user',
+                content: `PRODUCT VISION:
 ${idea}
 
 CURRENT PROGRESS:
@@ -62,15 +67,16 @@ Generate a "Hard Truth" report. Format exactly with these sections:
 [Tell them exactly what feature, idea, or task to completely abandon today]
 
 ### ⚡ THE WAKE-UP CALL
-[One aggressive, closing sentence to snap them back into execution]
-`;
+[One aggressive, closing sentence to snap them back into execution]`
+            }
+        ];
 
-        // 3. Run through LLM Router
+        // 3. Run through LLM Router — isolated context, no chat history.
         let truthReport = '';
         if (isCloud) {
-            truthReport = await generateCloud([{ role: 'user', content: prompt }], targetModel);
+            truthReport = await generateCloud(messages, targetModel);
         } else {
-            truthReport = await generateLocal([{ role: 'user', content: prompt }], targetModel);
+            truthReport = await generateLocal(messages, targetModel);
         }
 
         s.stop(hackerGreen('✅ Reality check complete.'));
@@ -78,6 +84,11 @@ Generate a "Hard Truth" report. Format exactly with these sections:
         console.log('\n' + truthReport.trim() + '\n');
 
         outroSafe(blazeOrange('Ego disabled. Get back to work.'));
+
+        // Return the final report explicitly so headless channels (Telegram)
+        // can ship the LLM output to the user without relying on stdout
+        // interception — which is fragile in a daemon context.
+        return truthReport.trim();
 
     } catch (error) {
         s.stop(chalk.red('❌ Core engine failed to process the hard truth.'));

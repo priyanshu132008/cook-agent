@@ -2,13 +2,13 @@ import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { readMemory } from '../memory.ts';
-import { generateLocal, generateCloud } from '../models.ts';
+import { generateLocal, generateCloud, type ChatMessage } from '../models.ts';
 import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
-export async function runLaunchSequence() {
+export async function runLaunchSequence(): Promise<string> {
     introSafe(blazeOrange.bold(' [ SKILL: LAUNCH SEQUENCE MATRIX ] '));
 
     const s = headlessSpinner();
@@ -30,22 +30,23 @@ export async function runLaunchSequence() {
 
         s.message(blazeOrange(`Generating channel-optimized distribution copy using ${targetModel}...`));
 
-        // 2. Construct Prompt
-        const prompt = `
-You are COOK AGENT, an elite growth hacker and marketing mastermind.
-Build a copy-paste ready launch dossier for our product based on the vision and target customer pain points.
-
-PRODUCT VISION:
+        // 2. Construct Prompt — split into system (role+tone) and user
+        //    (data+task). No chat history; LLM only sees the specific launch.
+        const messages: ChatMessage[] = [
+            {
+                role: 'system',
+                content: `You are COOK AGENT, an elite growth hacker and marketing mastermind. Build a copy-paste ready launch dossier for the product described below. Adopt an aggressive, clean, highly persuasive "Builder-to-Builder" tone. Do not write generic corporate marketing speak. Provide raw text formatted exactly with the headings given.`
+            },
+            {
+                role: 'user',
+                content: `PRODUCT VISION:
 ${idea}
 
 TARGET BUYER ARCHETYPES & HOOKS:
 ${customers}
 
 TASK:
-Generate hyper-targeted launch copy for 4 major platforms.
-- Adopt an aggressive, clean, highly persuasive "Builder-to-Builder" tone.
-- Do not write generic corporate marketing speak.
-- Provide raw text formatted exactly with these headings:
+Generate hyper-targeted launch copy for 4 major platforms. Use these exact headings:
 
 ### 😺 PRODUCT HUNT LAUNCH ASSETS
 **Tagline:** [Max 60 characters - high punch]
@@ -62,15 +63,16 @@ Tweet 3: [The call to action / git command]
 
 ### 👽 REDDIT COMMUNITY TARGETING (r/startups / r/IndieHackers)
 **Post Title:** [High-curiosity headline focused on solo-builder burnout]
-**Post Body:** [A narrative-driven text post sharing the story of building a tool to solve personal execution blocks]
-`;
+**Post Body:** [A narrative-driven text post sharing the story of building a tool to solve personal execution blocks]`
+            }
+        ];
 
-        // 3. Run through LLM Router
+        // 3. Run through LLM Router — isolated context, no chat history.
         let launchDossier = '';
         if (isCloud) {
-            launchDossier = await generateCloud([{ role: 'user', content: prompt }], targetModel);
+            launchDossier = await generateCloud(messages, targetModel);
         } else {
-            launchDossier = await generateLocal([{ role: 'user', content: prompt }], targetModel);
+            launchDossier = await generateLocal(messages, targetModel);
         }
 
         // Save persistently to file
@@ -83,6 +85,9 @@ Tweet 3: [The call to action / git command]
 
         console.log(`${chalk.dim('💾 Campaign permanently stored at:')} ${chalk.cyan('memory/launch_sequence.md')}\n`);
         outroSafe(blazeOrange('Launch materials locked. Ready for deployment.'));
+
+        // Explicit return — Telegram ships this directly to chat.
+        return launchDossier.trim();
 
     } catch (error) {
         s.stop(chalk.red('❌ Core engine failed to compile launch sequence.'));

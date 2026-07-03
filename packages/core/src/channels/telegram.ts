@@ -534,11 +534,13 @@ export async function startTelegram() {
 
                     chatHistories[chatId].push({ role: 'assistant', content: reply });
 
-                    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: chatId, text: reply })
-                    });
+                    // Telegram API hard-caps messages at 4096 chars. Local models
+                    // frequently emit >5000-char markdown replies, which would
+                    // fail the send outright and silently drop the payload.
+                    // sendTelegramChunked breaks on paragraph / line / word
+                    // boundaries and emits sequential messages with an order
+                    // suffix so the user can read the sequence as a whole.
+                    await sendTelegramChunked(token, chatId, reply);
                     console.log(chalk.hex('#FF4500')(`[TG] Out: `) + reply.substring(0, 50) + '...');
                 }
             }

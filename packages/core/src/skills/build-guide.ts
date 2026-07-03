@@ -1,16 +1,15 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runBuildGuide() {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: THE BUILD GUIDE ] '));
+    introSafe(blazeOrange.bold(' [ SKILL: THE BUILD GUIDE ] '));
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Analyzing architecture requirements...');
 
     try {
@@ -66,7 +65,7 @@ Generate a strictly formatted architectural guide. Use these exact headings:
 
         console.log('\n' + guideReport.trim() + '\n');
 
-        outro(blazeOrange('Blueprint locked. Execute the code.'));
+        outroSafe(blazeOrange('Blueprint locked. Execute the code.'));
 
     } catch (error) {
         s.stop(chalk.red('❌ Core engine failed to compile the build guide.'));

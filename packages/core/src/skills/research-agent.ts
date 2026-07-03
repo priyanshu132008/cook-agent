@@ -1,23 +1,15 @@
-import { intro, outro, spinner } from '@clack/prompts';
 import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { readMemory } from '../memory.ts';
 import { executeSearch, scrapeUrl } from '../search.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, isNonInteractive, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-/** Set by the Telegram dispatcher before invoking a skill. Skills that
- *  have an interactive stdin fallback (this one, customer-finder) MUST
- *  bail with a friendly error string instead of prompting, or the
- *  headless daemon deadlocks on a phantom TTY. */
-function isNonInteractive(): boolean {
-    return !!(globalThis as any).__COOK_NONINTERACTIVE__;
-}
 
 // Strip a leading URL out of a free-form prompt and return the URL + the
 // remaining prose. Lets users paste `cook research https://example.com Axora IO`
@@ -31,13 +23,10 @@ function splitUrlAndRest(input: string): { url: string | null; rest: string } {
 }
 
 export async function runResearchAgent(initialTopic = '') {
-    // Don't ever clear the operator's terminal in a headless context —
-    // the Telegram daemon's PM2 log buffer IS the terminal, and clearing
-    // it mid-run blinds whoever is watching the host.
-    if (!isNonInteractive()) {
-        console.clear();
-        intro(blazeOrange.bold(' [ SKILL: DEEP RESEARCH PROTOCOL ] '));
-    }
+    // Never clear the operator's terminal in a headless context — the
+    // Telegram daemon's PM2 log buffer IS the terminal, and clearing it
+    // mid-run blinds whoever is watching the host.
+    introSafe(blazeOrange.bold(' [ SKILL: DEEP RESEARCH PROTOCOL ] '));
 
     // Topic resolution: explicit args from `cook research <topic>` always win.
     // The interactive prompt is only shown when no topic was provided AND
@@ -70,7 +59,7 @@ export async function runResearchAgent(initialTopic = '') {
         topic = answer.trim();
     }
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Booting Cyber-Scout for deep extraction...');
 
     try {
@@ -171,7 +160,7 @@ Generate a highly dense, zero-fluff markdown briefing. Format exactly as follows
         console.log('\n' + researchReport.trim() + '\n');
         console.log(`${chalk.dim('💾 Briefing securely stored at:')} ${chalk.cyan(`memory/research_${slugSeed}.md`)}\n`);
 
-        outro(blazeOrange('Research protocol finalized.'));
+        outroSafe(blazeOrange('Research protocol finalized.'));
 
     } catch (error: any) {
         s.stop(chalk.red('❌ Core engine failed during extraction.'));

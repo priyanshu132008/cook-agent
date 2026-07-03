@@ -1,16 +1,15 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runHardTruth() {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: HARD TRUTH MODE ] '));
+    introSafe(blazeOrange.bold(' [ SKILL: HARD TRUTH MODE ] '));
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Accessing memory matrix to evaluate your current reality...');
 
     try {
@@ -78,7 +77,7 @@ Generate a "Hard Truth" report. Format exactly with these sections:
 
         console.log('\n' + truthReport.trim() + '\n');
 
-        outro(blazeOrange('Ego disabled. Get back to work.'));
+        outroSafe(blazeOrange('Ego disabled. Get back to work.'));
 
     } catch (error) {
         s.stop(chalk.red('❌ Core engine failed to process the hard truth.'));

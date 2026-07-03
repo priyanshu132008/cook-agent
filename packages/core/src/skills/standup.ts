@@ -1,17 +1,17 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
+import { note } from '@clack/prompts';
 import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runStandup() {
-    console.clear();
-    intro(blazeOrange.bold(' [ DAILY STANDUP PROTOCOL ] '));
+    introSafe(blazeOrange.bold(' [ DAILY STANDUP PROTOCOL ] '));
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Reading neural profile and analyzing project progress...');
 
     try {
@@ -68,7 +68,7 @@ Based on the founder's profile level, project idea, and the recent progress log,
         console.log('\n');
         note(chalk.white(battlePlan.trim()), blazeOrange("TODAY'S OBJECTIVES"));
 
-        outro(blazeOrange('Standup complete. Get to work.'));
+        outroSafe(blazeOrange('Standup complete. Get to work.'));
 
     } catch (error: any) {
         s.stop(chalk.red('❌ Brain offline. Failed to generate standup.'));

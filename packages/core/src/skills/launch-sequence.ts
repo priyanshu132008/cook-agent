@@ -1,18 +1,17 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
 import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runLaunchSequence() {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: LAUNCH SEQUENCE MATRIX ] '));
+    introSafe(blazeOrange.bold(' [ SKILL: LAUNCH SEQUENCE MATRIX ] '));
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Synthesizing launch materials from idea and customer ledgers...');
 
     try {
@@ -83,7 +82,7 @@ Tweet 3: [The call to action / git command]
         console.log('\n' + launchDossier.trim() + '\n');
 
         console.log(`${chalk.dim('💾 Campaign permanently stored at:')} ${chalk.cyan('memory/launch_sequence.md')}\n`);
-        outro(blazeOrange('Launch materials locked. Ready for deployment.'));
+        outroSafe(blazeOrange('Launch materials locked. Ready for deployment.'));
 
     } catch (error) {
         s.stop(chalk.red('❌ Core engine failed to compile launch sequence.'));

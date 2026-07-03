@@ -1,14 +1,14 @@
-import { intro, outro, spinner, note, text } from '@clack/prompts';
+import { note, text } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runDecisionPartner() {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: DECISION PARTNER ] '));
+    introSafe(blazeOrange.bold(' [ SKILL: DECISION PARTNER ] '));
 
     const dilemma = await text({
         message: chalk.white('What architectural or business decision is paralyzing you right now?'),
@@ -17,7 +17,7 @@ export async function runDecisionPartner() {
     });
     if (typeof dilemma !== 'string') process.exit(0);
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Analyzing trajectory...');
 
     try {
@@ -46,7 +46,7 @@ Format in raw markdown.
         const resolution = isCloud ? await generateCloud([{ role: 'user', content: prompt }], targetModel) : await generateLocal([{ role: 'user', content: prompt }], targetModel);
         s.stop(hackerGreen('✅ Decision resolved.'));
         console.log('\n' + resolution.trim() + '\n');
-        outro(blazeOrange('Stop thinking. Start typing.'));
+        outroSafe(blazeOrange('Stop thinking. Start typing.'));
     } catch (error) {
         s.stop(chalk.red('❌ Engine failure.'));
         process.exit(1);

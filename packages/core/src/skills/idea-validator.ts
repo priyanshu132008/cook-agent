@@ -1,17 +1,16 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
 import { executeSearch } from '../search.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runIdeaValidator() {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: IDEA VALIDATOR PROTOCOL ] '));
+    introSafe(blazeOrange.bold(' [ SKILL: IDEA VALIDATOR PROTOCOL ] '));
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Retrieving product vision from memory/idea.md...');
 
     try {
@@ -72,7 +71,7 @@ Format using the following strict layout:
 
         console.log('\n' + verdict.trim() + '\n');
 
-        outro(blazeOrange('Validation sequence finalized.'));
+        outroSafe(blazeOrange('Validation sequence finalized.'));
 
     } catch (error) {
         s.stop(chalk.red('❌ Core engine failure during validation.'));

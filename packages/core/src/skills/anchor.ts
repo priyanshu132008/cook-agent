@@ -1,15 +1,14 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runAnchor() {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: THE ANCHOR ] '));
-    const s = spinner();
+    introSafe(blazeOrange.bold(' [ SKILL: THE ANCHOR ] '));
+    const s = headlessSpinner();
     s.start('Reading your history...');
 
     try {
@@ -36,7 +35,7 @@ Write a 4-sentence grounding statement. Remind them of the code they have alread
         const anchorText = isCloud ? await generateCloud([{ role: 'user', content: prompt }], targetModel) : await generateLocal([{ role: 'user', content: prompt }], targetModel);
         s.stop(hackerGreen('✅ Anchor deployed.'));
         console.log('\n' + anchorText.trim() + '\n');
-        outro(blazeOrange('Breathe. Keep going.'));
+        outroSafe(blazeOrange('Breathe. Keep going.'));
     } catch (error) {
         s.stop(chalk.red('❌ Engine failure.'));
         process.exit(1);

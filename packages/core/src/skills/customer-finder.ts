@@ -1,10 +1,10 @@
-import { intro, outro, spinner } from '@clack/prompts';
 import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { readMemory } from '../memory.ts';
 import { executeSearch, scrapeUrl } from '../search.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, isNonInteractive, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
@@ -14,10 +14,6 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 const URL_REGEX = /^https?:\/\//i;
 const URL_IN_STRING = /(https?:\/\/\S+)/i;
-
-function isNonInteractive(): boolean {
-    return !!(globalThis as any).__COOK_NONINTERACTIVE__;
-}
 
 function looksLikeUrl(input: string): boolean {
     return URL_REGEX.test(input.trim());
@@ -31,10 +27,7 @@ function extractUrl(input: string): string | null {
 export async function runCustomerFinder(initialTarget = '') {
     // Never clear the operator's terminal in a headless context — the
     // Telegram daemon's PM2 log buffer IS the terminal.
-    if (!isNonInteractive()) {
-        console.clear();
-        intro(blazeOrange.bold(' [ SKILL: CUSTOMER FINDER PROTOCOL ] '));
-    }
+    introSafe(blazeOrange.bold(' [ SKILL: CUSTOMER FINDER PROTOCOL ] '));
 
     // Target resolution: an explicit target from `cook hunt <target>` always wins.
     // Otherwise, fall back to the interactive prompt — but only on a real TTY.
@@ -60,7 +53,7 @@ export async function runCustomerFinder(initialTarget = '') {
         target = answer.trim();
     }
 
-    const s = spinner();
+    const s = headlessSpinner();
     s.start('Calibrating Cyber-Scout for the hunt...');
 
     try {
@@ -199,7 +192,7 @@ Output raw markdown only. Do not wrap in markdown code fences or backticks. If t
         console.log('\n' + leadsMatrix.trim() + '\n');
 
         console.log(`${chalk.dim('💾 Leads permanently stored at:')} ${chalk.cyan('memory/customers.md')}\n`);
-        outro(blazeOrange('Customer lookup cycle closed.'));
+        outroSafe(blazeOrange('Customer lookup cycle closed.'));
 
     } catch (error: any) {
         s.stop(chalk.red('❌ Hunting sequence compromised.'));

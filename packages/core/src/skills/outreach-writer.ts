@@ -1,15 +1,14 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud } from '../models.ts';
+import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
 export async function runOutreachWriter() {
-    console.clear();
-    intro(blazeOrange.bold(' [ SKILL: OUTREACH WRITER ] '));
-    const s = spinner();
+    introSafe(blazeOrange.bold(' [ SKILL: OUTREACH WRITER ] '));
+    const s = headlessSpinner();
     s.start('Loading customer ledger...');
 
     try {
@@ -41,7 +40,7 @@ Write the outreach messages.
         const drafts = isCloud ? await generateCloud([{ role: 'user', content: prompt }], targetModel) : await generateLocal([{ role: 'user', content: prompt }], targetModel);
         s.stop(hackerGreen('✅ Outreach drafts compiled.'));
         console.log('\n' + drafts.trim() + '\n');
-        outro(blazeOrange('Go send them.'));
+        outroSafe(blazeOrange('Go send them.'));
     } catch (error) {
         s.stop(chalk.red('❌ Core engine failed.'));
         console.error(error);

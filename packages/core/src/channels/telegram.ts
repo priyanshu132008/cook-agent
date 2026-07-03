@@ -105,21 +105,21 @@ export async function approveTelegram(code: string) {
 // the 4096-char Telegram limit, and send it back as one or more messages.
 // ─────────────────────────────────────────────────────────────────────
 
-type TelegramSkill = () => Promise<void>;
+type TelegramSkill = (args?: string) => Promise<string | void>;
 
 /** Map of bare subcommand names → underlying programmatic skill runner.
  *  Mirrors the table in `terminal.ts` line-for-line. */
 const TELEGRAM_SKILL_MAP: Record<string, TelegramSkill> = {
-    truth: runHardTruth,
-    hunt: runCustomerFinder,
-    decide: runDecisionPartner,
-    blueprint: runBuildGuide,
-    validate: runIdeaValidator,
-    research: runResearchAgent,
-    outreach: runOutreachWriter,
-    launch: runLaunchSequence,
-    anchor: runAnchor,
-    doctor: runDoctor,
+    truth: () => runHardTruth(),
+    hunt: (args) => runCustomerFinder(args ?? ''),
+    decide: () => runDecisionPartner(),
+    blueprint: () => runBuildGuide(),
+    validate: () => runIdeaValidator(),
+    research: (args) => runResearchAgent(args ?? ''),
+    outreach: () => runOutreachWriter(),
+    launch: () => runLaunchSequence(),
+    anchor: () => runAnchor(),
+    doctor: () => runDoctor(),
 };
 
 /** Strip ANSI CSI sequences, OSC sequences, and clack's box-drawing borders.
@@ -187,10 +187,22 @@ function chunkForTelegram(text: string, limit = 4096): string[] {
     return chunks;
 }
 
+/** Result of running a skill through the headless capture wrapper. */
+interface CapturedSkillOutput {
+    /** Cleaned stdout buffer (everything the skill body printed via
+     *  console.log). May be empty if the skill uses explicit returns
+     *  exclusively and prints nothing. */
+    stdout: string;
+    /** The skill's explicit string return value, if any. This is the
+     *  canonical LLM output for skills that have been migrated to
+     *  the new "return the briefing" pattern. */
+    returnValue: string | void;
+}
+
 /** Run a programmatic skill, capturing its stdout into a string.
  *  Patches `process.stdout.write` and `process.exit` for the duration
  *  of the call so the daemon isn't killed by the skill's error path. */
-async function runSkillCapturingOutput(skill: TelegramSkill): Promise<string> {
+async function runSkillCapturingOutput(skill: TelegramSkill): Promise<CapturedSkillOutput> {
     const originalWrite = process.stdout.write.bind(process.stdout);
     const originalExit = process.exit;
     const chunks: string[] = [];
@@ -209,9 +221,10 @@ async function runSkillCapturingOutput(skill: TelegramSkill): Promise<string> {
         throw new Error('SKILL_TRY_EXIT');
     }) as never;
 
+    let returnValue: string | void = '';
     try {
         try {
-            await skill();
+            returnValue = await skill();
         } catch (e: any) {
             chunks.push(`\n❌ Skill crashed: ${e?.message ?? String(e)}\n`);
         }
@@ -220,18 +233,21 @@ async function runSkillCapturingOutput(skill: TelegramSkill): Promise<string> {
         process.exit = originalExit;
     }
 
-    return cleanTerminalText(chunks.join(''));
+    return {
+        stdout: cleanTerminalText(chunks.join('')),
+        returnValue,
+    };
 }
 
 /** Bind a parsed Telegram command to its underlying skill with the right
  *  argument. Most skills take no args; `research` and `hunt` get the
  *  trimmed arg-string (URL or free-text query) the user supplied. */
 function makeSkillRunner(name: string, args: string): TelegramSkill {
-    switch (name) {
-        case 'research': return () => runResearchAgent(args);
-        case 'hunt':     return () => runCustomerFinder(args);
-        default:         return TELEGRAM_SKILL_MAP[name];
-    }
+    return async () => {
+        const runner = TELEGRAM_SKILL_MAP[name];
+        if (!runner) return; // unknown skill — should never reach here
+        return runner(args);
+    };
 }
 
 /** Send one or more Telegram messages, chunking to fit the 4096-char limit.
@@ -435,7 +451,19 @@ export async function startTelegram() {
                         const skillFn = makeSkillRunner(parsed.name, parsed.args);
                         let captured = '';
                         try {
-                            captured = await runSkillCapturingOutput(skillFn);
+                            // Capture BOTH the skill's explicit string
+                            // return (research-agent and customer-finder
+                            // now do this) AND the intercepted stdout
+                            // buffer (still used by the other 7 skills).
+                            // The explicit return wins when it's non-empty
+                            // — it's the canonical payload, not a
+                            // side-effect of a UI render.
+                            const result = await runSkillCapturingOutput(skillFn);
+                            if (typeof result.returnValue === 'string' && result.returnValue.trim().length > 0) {
+                                captured = result.returnValue.trim();
+                            } else {
+                                captured = result.stdout;
+                            }
                         } catch (e: any) {
                             captured = `❌ Skill runner crashed: ${e?.message ?? String(e)}`;
                         } finally {

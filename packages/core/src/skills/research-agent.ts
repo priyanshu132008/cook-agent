@@ -22,7 +22,7 @@ function splitUrlAndRest(input: string): { url: string | null; rest: string } {
     return { url, rest };
 }
 
-export async function runResearchAgent(initialTopic = '') {
+export async function runResearchAgent(initialTopic = ''): Promise<string> {
     // Never clear the operator's terminal in a headless context — the
     // Telegram daemon's PM2 log buffer IS the terminal, and clearing it
     // mid-run blinds whoever is watching the host.
@@ -161,6 +161,12 @@ Generate a highly dense, zero-fluff markdown briefing. Format exactly as follows
         console.log(`${chalk.dim('💾 Briefing securely stored at:')} ${chalk.cyan(`memory/research_${slugSeed}.md`)}\n`);
 
         outroSafe(blazeOrange('Research protocol finalized.'));
+
+        // Return the final briefing explicitly so headless channels
+        // (Telegram) can ship the LLM output to the user without relying
+        // on stdout interception — which is fragile when the skill is run
+        // by a daemon whose own log buffer is the captured stream.
+        return researchReport.trim();
 
     } catch (error: any) {
         s.stop(chalk.red('❌ Core engine failed during extraction.'));

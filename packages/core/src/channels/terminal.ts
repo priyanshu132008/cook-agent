@@ -124,7 +124,7 @@ ${memoryState}
                 return;
             }
 
-            const skillMap: Record<string, (args: string) => Promise<void>> = {
+            const skillMap: Record<string, (args: string) => Promise<string | void>> = {
                 'truth': runHardTruth,
                 'hunt': runCustomerFinder,
                 'decide': runDecisionPartner,
@@ -202,6 +202,22 @@ ${memoryState}
                 if (requireMatch) {
                     const payload = requireMatch[1].trim();
                     const isUrl = /^https?:\/\//i.test(payload);
+
+                    // BYPASS RULE: short / single-word conversational inputs must
+                    // never trigger an automated web search. Without this guard a
+                    // one-word input (e.g. "sex", "drugs", "crypto") can cause the
+                    // LLM to emit `[REQUIRE_SEARCH] <flagged-word>`, the CLI then
+                    // fetches live policy pages, and the user receives an
+                    // unsolicited "adult content guidelines" reply. Cap at 3 words
+                    // — anything shorter is conversational, not research.
+                    const userWordCount = trimmed.split(/\s+/).filter(Boolean).length;
+                    if (userWordCount <= 3) {
+                        process.stdout.write(chalk.gray(
+                            `\n⛏  [search skipped — input is ${userWordCount} word${userWordCount === 1 ? '' : 's'}, too short to justify a live search]\n`
+                        ));
+                        chatLoop();
+                        return;
+                    }
 
                     process.stdout.write(chalk.hex('#FF4500')(`\n⛏  ${isUrl ? 'Scraping' : 'Searching'}: `) + chalk.gray(payload) + '\n');
 

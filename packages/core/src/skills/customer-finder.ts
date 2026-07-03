@@ -24,7 +24,7 @@ function extractUrl(input: string): string | null {
     return m ? m[1] : null;
 }
 
-export async function runCustomerFinder(initialTarget = '') {
+export async function runCustomerFinder(initialTarget = ''): Promise<string> {
     // Never clear the operator's terminal in a headless context — the
     // Telegram daemon's PM2 log buffer IS the terminal.
     introSafe(blazeOrange.bold(' [ SKILL: CUSTOMER FINDER PROTOCOL ] '));
@@ -193,6 +193,12 @@ Output raw markdown only. Do not wrap in markdown code fences or backticks. If t
 
         console.log(`${chalk.dim('💾 Leads permanently stored at:')} ${chalk.cyan('memory/customers.md')}\n`);
         outroSafe(blazeOrange('Customer lookup cycle closed.'));
+
+        // Return the final leads matrix explicitly so headless channels
+        // (Telegram) can ship the LLM output to the user without relying
+        // on stdout interception — which is fragile when the skill is run
+        // by a daemon whose own log buffer is the captured stream.
+        return leadsMatrix.trim();
 
     } catch (error: any) {
         s.stop(chalk.red('❌ Hunting sequence compromised.'));

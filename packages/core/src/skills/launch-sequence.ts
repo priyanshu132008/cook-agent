@@ -17,7 +17,19 @@ export async function runLaunchSequence(): Promise<string> {
     try {
         // 1. Gather Context
         const idea = await readMemory('idea.md');
-        const customers = await readMemory('customers.md');
+
+        // customers.md is OPTIONAL — it's only written after a successful
+        // `cook hunt` run. If the operator hasn't run the hunt skill yet,
+        // bail gracefully into a "no ledger" fallback instead of crashing
+        // the whole launch pipeline on ENOENT.
+        let customers = "";
+        try {
+            customers = await readMemory('customers.md');
+        } catch (error) {
+            // Fallback gracefully if the hunt ledger has not been generated yet
+            customers = "No customer acquisition ledger data found yet. Generate launch materials based purely on the core product idea.";
+        }
+
         const profile = await readMemory('profile.md');
 
         // ROBUST ROUTING PATCH

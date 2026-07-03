@@ -112,7 +112,7 @@ type TelegramSkill = (args?: string) => Promise<string | void>;
 const TELEGRAM_SKILL_MAP: Record<string, TelegramSkill> = {
     truth: () => runHardTruth(),
     hunt: (args) => runCustomerFinder(args ?? ''),
-    decide: () => runDecisionPartner(),
+    decide: (args) => runDecisionPartner(args ?? ''),
     blueprint: () => runBuildGuide(),
     validate: () => runIdeaValidator(),
     research: (args) => runResearchAgent(args ?? ''),
@@ -425,6 +425,7 @@ export async function startTelegram() {
                         const REQUIRES_ARG: Record<string, true> = {
                             research: true,
                             hunt: true,
+                            decide: true,
                         };
                         if (REQUIRES_ARG[parsed.name] && !parsed.args) {
                             const usage = `⚠️ Missing arguments. Usage: /${parsed.name} <topic/URL>`;

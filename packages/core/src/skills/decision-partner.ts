@@ -2,20 +2,36 @@ import { text } from '@clack/prompts';
 import chalk from 'chalk';
 import { readMemory } from '../memory.ts';
 import { generateLocal, generateCloud, type ChatMessage } from '../models.ts';
-import { headlessSpinner, introSafe, outroSafe } from '../headless.ts';
+import { headlessSpinner, introSafe, isNonInteractive, outroSafe } from '../headless.ts';
 
 const blazeOrange = chalk.hex('#FF4500');
 const hackerGreen = chalk.hex('#00FF00');
 
-export async function runDecisionPartner(): Promise<string> {
+export async function runDecisionPartner(args = ''): Promise<string> {
     introSafe(blazeOrange.bold(' [ SKILL: DECISION PARTNER ] '));
 
-    const dilemma = await text({
-        message: chalk.white('What architectural or business decision is paralyzing you right now?'),
-        placeholder: 'e.g., Should I use Postgres or SQLite for MVP?',
-        validate: (value) => value.length === 0 ? 'Speak to the Cook.' : undefined
-    });
-    if (typeof dilemma !== 'string') process.exit(0);
+    // Block interactive prompt execution if running without arguments.
+    // The headless Telegram daemon has no TTY — calling @clack/prompts
+    // would block forever on stdin and freeze the whole PM2 process.
+    // Bail with a friendly, instructive string the user can act on.
+    if (!args || args.trim() === '') {
+        if (isNonInteractive()) {
+            const usage = "⚠️ Please provide the decision details you want to analyze.\nExample: `cook decide Should we build a custom proprietary LLM wrapper or rely completely on OpenRouter endpoints?`";
+            console.log(usage);
+            return usage;
+        }
+        // TUI path: still ask the operator, but only because we have a real
+        // TTY to receive the answer. This is the only path that may prompt.
+        const answer = await text({
+            message: chalk.white('What architectural or business decision is paralyzing you right now?'),
+            placeholder: 'e.g., Should I use Postgres or SQLite for MVP?',
+            validate: (value) => value.length === 0 ? 'Speak to the Cook.' : undefined
+        });
+        if (typeof answer !== 'string') {
+            return 'Decide cancelled.';
+        }
+        args = answer;
+    }
 
     const s = headlessSpinner();
     s.start('Analyzing trajectory...');
@@ -41,7 +57,7 @@ export async function runDecisionPartner(): Promise<string> {
             {
                 role: 'user',
                 content: `DILEMMA:
-${dilemma}
+${args}
 
 PRODUCT CONTEXT:
 ${idea}`

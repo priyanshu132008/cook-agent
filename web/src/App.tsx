@@ -551,7 +551,9 @@ function LandingPage() {
   const [os, setOs] = useState<OS>('mac');
   const [copied, setCopied] = useState(false);
 
-  const installCommand = 'curl -sL lethimcook.online/install.sh | bash';
+  const macCommand = 'curl -sL lethimcook.online/install.sh | bash';
+  const winCommand = 'iwr -useb lethimcook.online/install.ps1 | iex';
+  const installCommand = os === 'win' ? winCommand : macCommand;
   const copyCommand = () => {
     void navigator.clipboard.writeText(installCommand);
     setCopied(true);

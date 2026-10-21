@@ -1,4 +1,8 @@
-![Cook Agent launch video](assets/launch.mp4)
+<div align="center">
+  <a href="assets/launch.mp4">
+    <img src="assets/launch-preview.gif" alt="Cook Agent launch video — click to watch full quality" />
+  </a>
+</div>
 
 <div align="center">
   <h1 style="color: #FF4500; font-size: 3em; font-weight: 800; border-bottom: none;">&gt;_ COOK_AGENT</h1>

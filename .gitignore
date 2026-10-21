@@ -5,3 +5,5 @@ memory/
 dist/
 .env
 packages/.env
+
+brag-output/

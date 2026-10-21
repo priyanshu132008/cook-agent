@@ -1,4 +1,10 @@
 <div align="center">
+  <a href="assets/launch.mp4">
+    <img src="assets/launch.jpg" alt="Cook Agent launch video — click to watch" width="100%" />
+  </a>
+</div>
+
+<div align="center">
   <h1 style="color: #FF4500; font-size: 3em; font-weight: 800; border-bottom: none;">&gt;_ COOK_AGENT</h1>
   <p><strong>The open-source AI co-founder that lives on your laptop.
 Remembers your journey. Guides your next move. Helps you ship..</strong></p>
